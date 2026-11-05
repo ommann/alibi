@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "hello-world": {
+      "type": "http",
+      "url": "http://127.0.0.1:3001/mcp"
+    },
+    "hello-management": {
+      "type": "http",
+      "url": "http://127.0.0.1:3001/manage/mcp"
+    }
+  }
+}
