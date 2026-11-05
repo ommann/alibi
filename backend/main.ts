@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createMcpServer, settingSchema } from './mcp';
 import { SettingStore } from './store';
 import { config } from './config';
+import { validationHttp } from './validation-http';
 
 const port = config.PORT;
 
@@ -22,6 +23,7 @@ type Session = {
 const sessions = new Map<string, Session>();
 
 const app = new Hono();
+app.route('/api/validation', validationHttp);
 
 app.onError((error, c) => {
   if (error instanceof z.ZodError || error instanceof SyntaxError)
