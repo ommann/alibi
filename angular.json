@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "projects": {
+    "validate": {
+      "projectType": "application",
+      "root": "frontend",
+      "sourceRoot": "frontend/src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "frontend/src/main.ts",
+            "index": "frontend/src/index.html",
+            "tsConfig": "frontend/tsconfig.json",
+            "outputPath": "dist/ui",
+            "baseHref": "/",
+            "deployUrl": "/ui/",
+            "styles": ["frontend/src/styles/theme.css", "frontend/src/styles/base.css"],
+            "outputHashing": "all"
+          }
+        }
+      }
+    }
+  }
+}

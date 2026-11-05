@@ -1,0 +1,16 @@
+.button {
+  display: inline-block;
+  padding: 0 1ch;
+  border: 1px solid var(--border);
+  color: var(--control-text);
+  text-decoration: none;
+}
+
+.button:hover {
+  background: var(--control-active-background);
+  color: var(--control-active-text);
+}
+
+[role="alert"] {
+  color: var(--status-error);
+}

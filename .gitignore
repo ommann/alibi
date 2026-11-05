@@ -1,5 +1,8 @@
 node_modules/
 dist/
+.angular/
+.server.pid
+.server.lock
 
 .env
 .env.*

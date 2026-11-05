@@ -6,6 +6,7 @@ import { createMcpServer, settingSchema } from './mcp';
 import { SettingStore } from './store';
 import { config } from './config';
 import { validationHttp } from './validation-http';
+import { rpcHandler } from './rpc';
 
 const port = config.PORT;
 
@@ -73,7 +74,26 @@ app.post('/api/setting', async (c) => {
   return c.json({ number: store.set(number) });
 });
 
-app.get('/', async (c) => c.html(await appHtml()));
+app.all('/rpc/*', async (c) => {
+  const url = new URL(c.req.url);
+  const requestOrigin = c.req.header('Origin');
+  if (!['localhost', '127.0.0.1'].includes(url.hostname) ||
+      (requestOrigin && requestOrigin !== url.origin) || c.req.header('Sec-Fetch-Site') === 'cross-site') {
+    return c.json({ error: 'Cross-origin request rejected' }, 403);
+  }
+  const { response } = await rpcHandler.handle(c.req.raw, { prefix: '/rpc' });
+  return response ?? c.notFound();
+});
+
+app.get('/ui/*', async (c) => {
+  const name = c.req.path.slice('/ui/'.length);
+  if (!/^[a-zA-Z0-9_.-]+$/.test(name)) return c.notFound();
+  const file = Bun.file(`dist/ui/browser/${name}`);
+  return await file.exists() ? new Response(file) : c.notFound();
+});
+for (const path of ['/', '/presentation']) {
+  app.get(path, async (c) => c.html(await Bun.file('dist/ui/browser/index.html').text()));
+}
 
 const http = Bun.serve({ hostname: '127.0.0.1', port, idleTimeout: 0, fetch: app.fetch });
 

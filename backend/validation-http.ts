@@ -1,19 +1,5 @@
 import { Hono } from 'hono';
-import { resolve } from 'node:path';
-import { Validation } from './validation/core';
-
-// One independent runner per project; simultaneous first requests share initialization.
-const projects = new Map<string, Promise<Validation>>();
-function project(cwd: string) {
-  const path = resolve(cwd);
-  let pending = projects.get(path);
-  if (!pending) {
-    pending = Validation.create(path);
-    projects.set(path, pending);
-    pending.catch(() => projects.delete(path));
-  }
-  return pending;
-}
+import { project } from './validation-projects';
 
 export const validationHttp = new Hono();
 

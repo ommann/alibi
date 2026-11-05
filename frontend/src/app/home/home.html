@@ -1,0 +1,10 @@
+<main>
+  <h1>Validate</h1>
+  <p>{{ validation.cwd() || 'No project selected' }}</p>
+  @if (validation.cwd()) {
+    <a class="button" routerLink="/presentation" queryParamsHandling="preserve">Presentation</a>
+    @if (validation.error(); as error) { <p role="alert">{{ error }}</p> }
+  } @else {
+    <p>Open this page with <code>?cwd=/absolute/project/path</code> to select a project.</p>
+  }
+</main>
