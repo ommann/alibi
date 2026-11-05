@@ -41,6 +41,7 @@
     "@angular/cli": "22.2.4",
     "@angular/compiler-cli": "22.2.4",
     "@types/bun": "latest",
+    "@types/eslint": "^9.6.1",
     "@types/node": "^24.0.0",
     "@usebruno/cli": "^4.3.0",
     "typescript": "~6.0.0",

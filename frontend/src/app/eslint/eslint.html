@@ -1,0 +1,68 @@
+<main>
+  <app-view-navigation />
+  <h2>ESLint rules</h2>
+
+  <div class="toolbar">
+    <input type="search" aria-label="Filter groups" placeholder="Filter groups…" [value]="nameSearch()" (input)="nameSearch.set(value($event))">
+    <input type="search" aria-label="Filter rules" placeholder="Filter rules…" [value]="search()" (input)="search.set(value($event))">
+    <label><app-checkbox [(checked)]="hideDeprecated" /> Hide deprecated unassigned rules</label>
+    @if (!addingGroup()) {
+      <div class="toolbar-actions">
+        <button type="button" [disabled]="validation.editingDisabled()" (click)="addingGroup.set(true)">Add group</button>
+      </div>
+    }
+  </div>
+
+  @if (addingGroup()) {
+
+  <form class="editor toolbar" (submit)="$event.preventDefault(); addGroup()">
+    <input aria-label="New group name" placeholder="Group name" [value]="newName()" (input)="newName.set(value($event))" [disabled]="validation.editingDisabled()">
+    <select aria-label="Configuration source" [value]="configuration()" (change)="configuration.set(value($event))" [disabled]="validation.editingDisabled()">
+      <option value="managed">Managed rules</option>
+      <option value="file">Project config file</option>
+    </select>
+    @if (configuration() === 'file') {
+      <input aria-label="Project-relative config path" placeholder="./eslint.config.mjs" [value]="configFile()" (input)="configFile.set(value($event))" [disabled]="validation.editingDisabled()">
+    }
+    <div class="toolbar-actions">
+      <button type="submit" [disabled]="validation.editingDisabled() || !newName().trim() || (configuration() === 'file' && !configFile().trim())">Add</button>
+      <button type="button" (click)="addingGroup.set(false)">Cancel</button>
+    </div>
+  </form>
+  }
+
+  @if (validation.catalogError(); as error) { <p class="error" role="alert">{{ error }} <button (click)="validation.loadESLintRules()">Retry</button></p> }
+
+  @if (error() || validation.actionError()) { <p class="error" role="alert">{{ error() || validation.actionError() }}</p> }
+
+  <div cdkDropListGroup>
+    @for (bucket of visibleBuckets(); track bucket.key) {
+      <details class="rule-group" open>
+        <summary class="group-heading">{{ bucket.name }} <span class="muted">{{ bucket.configFile ? 'Config file' : bucket.rules.length + '/' + bucket.count }} {{ bucket.status }}</span></summary>
+        @if (bucket.configFile) {
+          <p>{{ bucket.configFile }}</p>
+          <p class="muted">Rules are managed in this file, not here.</p>
+        } @else {
+          <div class="rule-list" cdkDropList [cdkDropListData]="bucket.key" [cdkDropListDisabled]="validation.editingDisabled()" [cdkDropListSortingDisabled]="true" (cdkDropListDropped)="drop($event)">
+            @for (rule of bucket.rules; track rule.id) {
+              @if (bucket.key === null) {
+                <div cdkDrag [cdkDragData]="rule.id" [cdkDragDisabled]="validation.editingDisabled()" class="rule">
+                  <div class="rule-row unassigned-row"><app-rule-row [ruleId]="rule.id" [group]="bucket.key" [targets]="buckets()" [disabled]="validation.editingDisabled()" (move)="move(rule.id, bucket.key, $event)" /></div>
+                </div>
+              } @else {
+              <details cdkDrag [cdkDragData]="rule.id" [cdkDragDisabled]="validation.editingDisabled()" class="rule">
+                <summary class="rule-row" (click)="summaryClick($event)"><app-rule-row [ruleId]="rule.id" [group]="bucket.key" [targets]="buckets()" [disabled]="validation.editingDisabled()" (move)="move(rule.id, bucket.key, $event)" /></summary>
+                <div class="settings">
+                  @for (setting of rule.settings; track $index) {
+                    <textarea [attr.aria-label]="rule.id + ' setting ' + ($index + 1)" [value]="settingJson(setting)" [rows]="settingJson(setting).split('\n').length" spellcheck="false" [disabled]="validation.editingDisabled()" (change)="updateSetting($event, bucket.key, rule.id, $index)"></textarea>
+                  }
+                </div>
+              </details>
+              }
+            } @empty { <p class="empty muted">Drop rules here.</p> }
+          </div>
+        }
+      </details>
+    }
+  </div>
+</main>

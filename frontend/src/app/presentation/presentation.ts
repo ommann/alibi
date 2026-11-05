@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, ElementRef, afterRenderEffect, inject, signal, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ViewNavigation } from '../shared/view-navigation';
 import { ValidationState } from '../core/validation-state';
 import { AnsiOutput } from '../shared/ansi-output';
 
 @Component({
   selector: 'app-presentation',
-  imports: [RouterLink, AnsiOutput],
+  imports: [ViewNavigation, AnsiOutput],
   templateUrl: './presentation.html',
   styleUrl: './presentation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

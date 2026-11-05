@@ -1,0 +1,23 @@
+:host {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-inline);
+  flex: 1;
+  min-width: 0;
+}
+
+.handle {
+  cursor: grab;
+}
+
+.rule-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+select {
+  padding-block: 0;
+  background: var(--button-background);
+  max-width: 24ch;
+}

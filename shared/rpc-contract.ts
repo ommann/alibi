@@ -28,6 +28,10 @@ const snapshot: z.ZodType<Snapshot> = z.object({
 });
 
 export const validationContract = {
+  eslintRules: oc.output(z.array(z.object({
+    id: z.string(), description: z.string(), url: z.string().optional(),
+    deprecated: z.boolean(), requiresTypeChecking: z.boolean(),
+  }))),
   configure: oc.input(z.object({ cwd: z.string().trim().min(1), plan })).output(snapshot),
   run: oc.input(z.object({ cwd: z.string().trim().min(1) })).output(z.object({ id: z.string() })),
   stop: oc.input(z.object({ cwd: z.string().trim().min(1) })).output(snapshot),

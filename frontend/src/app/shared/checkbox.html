@@ -1,0 +1,2 @@
+<input type="checkbox" [checked]="checked()" [indeterminate]="indeterminate()" [disabled]="disabled()" [attr.aria-label]="ariaLabel()" (change)="change($event)">
+<span class="checkbox-mark" aria-hidden="true">{{ indeterminate() ? '[-]' : checked() ? '[X]' : '[ ]' }}</span>

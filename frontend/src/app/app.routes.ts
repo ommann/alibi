@@ -14,6 +14,7 @@ export const routes: Routes = [
     loadComponent: () => import('./project').then(m => m.Project),
     children: [
       { path: '', pathMatch: 'full', loadComponent: () => import('./home/home').then(m => m.Home) },
+      { path: '-/eslint', loadComponent: () => import('./eslint/eslint').then(m => m.ESLint) },
       { path: '-/presentation', loadComponent: () => import('./presentation/presentation').then(m => m.Presentation) },
     ],
   },

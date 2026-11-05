@@ -1,6 +1,5 @@
+<app-view-navigation />
 <section aria-label="Presentation" #viewport (scroll)="scroll($event)">
-  <a class="exit" [routerLink]="validation.cwd()" aria-label="Exit presentation" title="Exit presentation">×</a>
-  @if (validation.error(); as error) { <p role="alert">{{ error }}</p> }
   @if (!validation.cwd()) {
     <p>No project selected.</p>
   } @else if (validation.latestRun(); as run) {

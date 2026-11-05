@@ -1,13 +1,15 @@
 :host {
   display: block;
-  min-height: 100dvh;
+  height: 100dvh;
+  padding: 1lh 1ch;
+  display: flex;
+  flex-direction: column;
 }
 
 section {
-  position: fixed;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 1lh 1ch;
   background: var(--background);
   color: var(--text);
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);

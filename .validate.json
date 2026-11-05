@@ -1,4 +1,19 @@
 {
+  "eslint": {
+    "fun": [
+      {
+        "rules": {}
+      },
+      {
+        "rules": {}
+      },
+      {
+        "rules": {
+          "no-unused-vars": "error"
+        }
+      }
+    ]
+  },
   "groups": [
     [
       "build",
@@ -27,6 +42,9 @@
     ],
     [
       "vitest-coverage"
+    ],
+    [
+      "eslint:fun"
     ]
   ],
   "policies": {
@@ -36,6 +54,7 @@
     "ast-grep-no-sanitization-bypass": "off",
     "ast-grep-no-subscribe": "off",
     "build": "agent",
+    "eslint:fun": "agent",
     "lint": "agent",
     "never-applicable": "off",
     "stryker-mutation": "off",

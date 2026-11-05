@@ -3,14 +3,21 @@ import tseslint from 'typescript-eslint';
 import solid from 'eslint-plugin-solid';
 import type { ESLintRule } from '../../shared/contracts.ts';
 
-// Only advertise rules from the ESLint and plugin versions the runner actually supplies.
+type CatalogRule = {
+  meta?: {
+    docs?: { description?: string; url?: string; requiresTypeChecking?: boolean };
+    deprecated?: unknown;
+  };
+};
+
+// Read metadata from the bundled SDK versions, independently of execution.
 export function eslintRuleCatalog(): ESLintRule[] {
   const entries = [
     ...builtinRules.entries(),
     ...Object.entries(solid.rules).map(([name, rule]) => [`solid/${name}`, rule] as const),
-    ...Object.entries(tseslint.plugin.rules).map(([name, rule]) => [`@typescript-eslint/${name}`, rule] as const),
+    ...Object.entries((tseslint.plugin as unknown as { rules: Record<string, CatalogRule> }).rules).map(([name, rule]) => [`@typescript-eslint/${name}`, rule] as const),
   ];
-  return entries.map(([id, rule]) => ({
+  return (entries as unknown as [string, CatalogRule][]).map(([id, rule]) => ({
     id,
     description: rule.meta?.docs?.description ?? '',
     url: rule.meta?.docs?.url,

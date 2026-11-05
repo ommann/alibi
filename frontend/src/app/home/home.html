@@ -1,19 +1,11 @@
 <main>
-  <header>
-    <h1>Validate</h1>
-    <span>{{ validation.status() }}</span>
-  </header>
-
-  <p class="muted">{{ validation.cwd() || 'No project selected' }}</p>
-
-  @if (validation.error(); as error) { <p role="alert">{{ error }}</p> }
+  <app-view-navigation />
   @if (validation.actionError(); as error) { <p role="alert">{{ error }}</p> }
 
   @if (validation.state(); as state) {
     <div class="actions">
       <button type="button" [disabled]="validation.editingDisabled()" (click)="validation.run()">Run</button>
       <button type="button" [disabled]="!state.running || state.stopping || validation.pending()" (click)="validation.stop()">{{ state.stopping ? 'Stopping…' : 'Stop' }}</button>
-      <a class="button" routerLink="./-/presentation">Presentation</a>
     </div>
 
     <section aria-labelledby="analyses-heading">

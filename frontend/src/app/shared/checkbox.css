@@ -1,0 +1,26 @@
+:host {
+  display: inline-block;
+  position: relative;
+  flex: none;
+  width: 3ch;
+  cursor: pointer;
+}
+
+input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.checkbox-mark {
+  display: block;
+  width: 3ch;
+  font: inherit;
+  white-space: pre;
+  color: var(--toggle-state-on);
+}
+
+input:focus-visible + .checkbox-mark {
+  outline: 1px solid var(--toggle-state-on);
+}

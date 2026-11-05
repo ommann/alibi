@@ -4,9 +4,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { validationContract } from '../shared/rpc-contract';
 import { project } from './validation-projects';
 
+import { eslintRuleCatalog } from './validation/eslint-rules';
+
 const implementation = implement(validationContract);
 
 export const router = implementation.router({
+  eslintRules: implementation.eslintRules.handler(() => eslintRuleCatalog()),
   configure: implementation.configure.handler(async ({ input }) => {
     const runner = await project(input.cwd);
     await runner.configure(input.plan);

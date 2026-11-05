@@ -1,0 +1,161 @@
+:host {
+  display: block;
+}
+
+header,
+.toolbar,
+.rule-row,
+.group-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-inline);
+}
+
+header,
+.toolbar {
+  margin-block-end: var(--space-block);
+}
+
+header h1 {
+  margin: 0;
+  margin-inline-end: auto;
+}
+
+h2 {
+  font: inherit;
+  font-weight: bold;
+  color: var(--text-emphasis);
+  margin: 0 0 var(--space-block);
+}
+
+.current-view {
+  padding: var(--space-control) var(--space-inline);
+  color: var(--select-active-text);
+  background: var(--select-active-background);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: var(--space-inline);
+  margin-inline-start: auto;
+}
+
+input[type="search"] {
+  width: 26ch;
+  max-width: 100%;
+}
+
+input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.editor {
+  padding: var(--space-control) var(--space-inline);
+  color: var(--select-active-text);
+  background: var(--select-active-background);
+}
+
+.editor input,
+.editor select {
+  color: var(--control-active-text);
+  background: var(--control-active-background);
+}
+
+.editor button {
+  color: var(--control-active-text);
+  background: var(--button-background);
+}
+
+.editor button:disabled {
+  color: var(--text-secondary);
+}
+
+.toolbar {
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+.error {
+  color: var(--status-error);
+}
+
+.rule-group {
+  margin-block-end: var(--space-control);
+}
+
+.group-heading {
+  list-style: none;
+  font-weight: bold;
+  cursor: pointer;
+  padding-block: var(--space-control);
+}
+
+.group-heading::-webkit-details-marker {
+  display: none;
+}
+
+.group-heading::before {
+  content: '▸';
+  color: var(--text-secondary);
+}
+
+.rule-group[open] > .group-heading::before {
+  content: '▾';
+}
+
+.group-heading .muted {
+  font-weight: normal;
+}
+
+.rule-row {
+  background: var(--control-active-background);
+  padding: var(--space-control) var(--space-inline);
+  list-style: none;
+  cursor: pointer;
+}
+
+.rule-row::-webkit-details-marker {
+  display: none;
+}
+
+.rule-list {
+  min-height: 1lh;
+}
+
+.rule + .rule {
+  margin-block-start: var(--space-control);
+}
+
+.unassigned-row {
+  cursor: default;
+}
+
+.settings {
+  padding: var(--space-control) var(--space-inline);
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  display: block;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-control) var(--space-inline);
+  background: var(--control-active-background);
+}
+
+.cdk-drag-preview {
+  font-family: inherit;
+  color: var(--text-emphasis);
+  background: var(--control-active-background);
+}
+
+.cdk-drag-placeholder {
+  opacity: var(--drag-placeholder-opacity);
+}

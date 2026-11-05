@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { VALIDATION_RPC } from './rpc-client';
-import type { Plan, Snapshot } from '../../../../shared/contracts';
+import type { ESLintRule, Plan, Snapshot } from '../../../../shared/contracts';
 
 @Injectable({ providedIn: 'root' })
 export class ValidationState {
@@ -10,6 +10,18 @@ export class ValidationState {
   private readonly connectionError = signal<string | null>(null);
   private readonly connectionStatus = signal<'idle' | 'connecting' | 'connected' | 'reconnecting'>('idle');
   private controller?: AbortController;
+
+  readonly eslintRules = signal<ESLintRule[]>([]);
+  readonly catalogError = signal<string | null>(null);
+
+  async loadESLintRules(): Promise<void> {
+    this.catalogError.set(null);
+    try {
+      this.eslintRules.set(await this.rpc.eslintRules());
+    } catch (error) {
+      this.catalogError.set(String(error));
+    }
+  }
 
   readonly pending = signal(false);
   readonly actionError = signal<string | null>(null);

@@ -1,0 +1,11 @@
+<span cdkDragHandle class="handle" aria-label="Drag rule">⠿</span>
+<span class="rule-name">{{ ruleId() }}</span>
+<select aria-label="Move rule to group" [disabled]="disabled()" (change)="selectMove($event)">
+  <option value="" hidden>…</option>
+  @for (target of targets(); track target.key) {
+    @if (target.key !== null && target.key !== group() && !target.configFile) {
+      <option [value]="target.key">{{ target.name }}</option>
+    }
+  }
+  @if (group() !== null) { <option value=":unassigned">Unassigned</option> }
+</select>

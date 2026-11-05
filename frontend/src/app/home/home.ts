@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { DatePipe, KeyValuePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ViewNavigation } from '../shared/view-navigation';
 import { DragDropModule, moveItemInArray, transferArrayItem, type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ValidationState } from '../core/validation-state';
 import { AnsiOutput } from '../shared/ansi-output';
@@ -8,7 +8,7 @@ import type { Plan, Policy, Run } from '../../../../shared/contracts';
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, DatePipe, KeyValuePipe, AnsiOutput, DragDropModule],
+  imports: [ViewNavigation, DatePipe, KeyValuePipe, AnsiOutput, DragDropModule],
   templateUrl: './home.html',
   styleUrl: './home.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
