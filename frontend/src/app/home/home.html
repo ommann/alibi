@@ -86,7 +86,7 @@
       @if (selectedRun(); as run) {
         <h2>Steps</h2>
         <div class="results">
-          @for (result of run.results; track selectedRun()!.id + result.name) {
+          @for (result of visibleResults(); track selectedRun()!.id + result.name) {
             <details class="result" [attr.data-status]="result.status" [open]="result.status === 'failed' || result.status === 'running'">
               <summary class="result-row">
                 <span class="result-name">{{ result.name }}</span>

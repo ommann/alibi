@@ -26,6 +26,9 @@ export class Home {
   readonly selectedRun = computed<Run | null>(() =>
     this.runs().find(run => run.id === this.selectedId()) ?? this.runs()[0] ?? null,
   );
+  readonly visibleResults = computed(() =>
+    this.selectedRun()?.results.filter(result => result.policy !== 'off') ?? [],
+  );
   readonly disabled = computed(() => {
     const state = this.validation.state();
     return state?.steps.filter(step => !state.plan.groups.flat().includes(step.name)) ?? [];

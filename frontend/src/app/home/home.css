@@ -18,7 +18,6 @@ header h1 {
 
 header,
 section,
-.analysis-group,
 .results,
 .history {
   margin-block-end: var(--space-block);
@@ -42,6 +41,7 @@ h2 {
 
 .analysis-group {
   position: relative;
+  margin-block-end: var(--space-control);
 }
 
 .group-handle {
@@ -59,6 +59,7 @@ h2 {
   min-width: 0;
   background: var(--background);
 }
+
 
 .empty-group {
   min-height: calc(1lh + 2 * var(--space-control));
@@ -113,6 +114,20 @@ h2 {
 [data-audience="agent"] {
   color: var(--audience-agent);
 }
+
+span[data-audience="user"] {
+  background: var(--audience-user-background);
+}
+
+span[data-audience="agent"] {
+  background: var(--audience-agent-background);
+}
+
+span[data-audience] {
+  padding-inline: var(--space-inline);
+  border-radius: var(--audience-pill-radius);
+}
+
 
 .analysis-controls {
   display: grid;

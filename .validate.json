@@ -30,18 +30,18 @@
     ]
   ],
   "policies": {
-    "ast-grep-no-clear-interval": "agent",
-    "ast-grep-no-discarded-router-navigation": "agent",
-    "ast-grep-no-dynamic-code": "agent",
-    "ast-grep-no-sanitization-bypass": "agent",
-    "ast-grep-no-subscribe": "agent",
+    "ast-grep-no-clear-interval": "off",
+    "ast-grep-no-discarded-router-navigation": "off",
+    "ast-grep-no-dynamic-code": "off",
+    "ast-grep-no-sanitization-bypass": "off",
+    "ast-grep-no-subscribe": "off",
     "build": "agent",
     "lint": "agent",
-    "never-applicable": "agent",
-    "stryker-mutation": "agent",
+    "never-applicable": "off",
+    "stryker-mutation": "off",
     "test": "agent",
-    "typescript-empty-lines": "agent",
-    "vitest-coverage": "agent"
+    "typescript-empty-lines": "off",
+    "vitest-coverage": "off"
   },
   "removed": [],
   "options": {

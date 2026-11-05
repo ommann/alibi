@@ -35,8 +35,11 @@
   --text-emphasis: #d6e0e5;
   --text-secondary: #a1b0ab;
   --tool-title-text: #d8dfdc;
-  --audience-user: var(--purple);
-  --audience-agent: var(--status-running);
+  --audience-pill-radius: 999px;
+  --audience-user: #e0c5ff;
+  --audience-user-background: #49365c;
+  --audience-agent: #b8d5ff;
+  --audience-agent-background: #2d4569;
   --button-background: var(--border-subtle);
   --control-text: #a7b9c2;
   --control-active-text: #e1e6e4;
