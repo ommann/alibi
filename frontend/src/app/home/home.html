@@ -1,10 +1,111 @@
 <main>
-  <h1>Validate</h1>
-  <p>{{ validation.cwd() || 'No project selected' }}</p>
-  @if (validation.cwd()) {
-    <a class="button" routerLink="/presentation" queryParamsHandling="preserve">Presentation</a>
-    @if (validation.error(); as error) { <p role="alert">{{ error }}</p> }
+  <header>
+    <h1>Validate</h1>
+    <span>{{ validation.status() }}</span>
+  </header>
+
+  <p class="muted">{{ validation.cwd() || 'No project selected' }}</p>
+
+  @if (validation.error(); as error) { <p role="alert">{{ error }}</p> }
+  @if (validation.actionError(); as error) { <p role="alert">{{ error }}</p> }
+
+  @if (validation.state(); as state) {
+    <div class="actions">
+      <button type="button" [disabled]="validation.editingDisabled()" (click)="validation.run()">Run</button>
+      <button type="button" [disabled]="!state.running || state.stopping || validation.pending()" (click)="validation.stop()">{{ state.stopping ? 'Stopping…' : 'Stop' }}</button>
+      <a class="button" routerLink="./-/presentation">Presentation</a>
+    </div>
+
+    <section aria-labelledby="analyses-heading">
+      <h2 id="analyses-heading">Analyses</h2>
+      <div cdkDropList [cdkDropListData]="groups()" [cdkDropListDisabled]="validation.editingDisabled()" (cdkDropListDropped)="dropGroup($event)">
+      <div cdkDropListGroup>
+      @for (group of groups(); track $index; let groupIndex = $index) {
+        <div class="analysis-group" cdkDrag [cdkDragData]="group" [cdkDragDisabled]="$last || validation.editingDisabled()">
+          @if (!$last) {
+            <button class="group-handle" type="button" cdkDragHandle [disabled]="validation.editingDisabled()" [attr.aria-label]="'Drag group ' + (groupIndex + 1)">⠿</button>
+          }
+          <div class="analysis-list" [class.empty-group]="$last" cdkDropList [cdkDropListData]="group" [cdkDropListDisabled]="validation.editingDisabled()" [attr.aria-label]="$last ? 'New analysis group' : 'Analysis group ' + (groupIndex + 1)" (cdkDropListDropped)="dropAnalysis($event)">
+          @for (name of group; track name) {
+            <details class="analysis" cdkDrag [cdkDragData]="name" [cdkDragDisabled]="validation.editingDisabled()">
+              <summary class="analysis-row" (click)="summaryClick($event)">
+                <span class="analysis-name" cdkDragHandle>{{ name }}</span>
+                <span class="policies" role="group" [attr.aria-label]="name + ' policy'">
+                  @for (policy of policies; track policy) {
+                    <button type="button" [attr.data-audience]="policy" [attr.aria-pressed]="state.plan.policies[name] === policy" [disabled]="validation.editingDisabled()" (click)="this.policy(name, policy)">{{ policy }}</button>
+                  }
+                  <button type="button" [attr.aria-label]="'Remove ' + name" [disabled]="validation.editingDisabled()" (click)="remove(name)">×</button>
+                </span>
+              </summary>
+              <div class="analysis-controls">
+                @for (analysis of state.steps; track analysis.name) {
+                  @if (analysis.name === name) {
+                    @if (analysis.detection?.error; as error) { <p role="alert">{{ error }}</p> }
+                    @for (entry of analysis.parameters | keyvalue; track entry.key) {
+                      <label>{{ entry.value.label }}
+                        <input type="number" [value]="state.plan.configs?.[name]?.[entry.key] ?? entry.value.default" [min]="entry.value.min ?? null" [max]="entry.value.max ?? null" [step]="entry.value.step ?? 1" [disabled]="validation.editingDisabled()" (change)="parameter(name, entry.key, $event)">
+                      </label>
+                    }
+                  }
+                }
+              </div>
+            </details>
+          }
+          </div>
+        </div>
+      }
+      </div>
+      </div>
+
+      @if (disabled().length) {
+        <details>
+          <summary>Available analyses ({{ disabled().length }})</summary>
+          @for (analysis of disabled(); track analysis.name) {
+            <div class="catalog-row"><span>{{ analysis.name }}</span><button type="button" [disabled]="validation.editingDisabled()" (click)="enable(analysis.name)">Enable</button></div>
+          }
+        </details>
+      }
+    </section>
+
+    <section aria-labelledby="runs-heading">
+      <h2 id="runs-heading">Runs</h2>
+      <div class="history" aria-label="Run history">
+        @for (run of runs(); track run.id) {
+          <button class="run-row" type="button" [attr.aria-pressed]="selectedRun()?.id === run.id" (click)="selectedId.set(run.id)">
+            <time [attr.datetime]="run.startedAt">{{ run.startedAt | date:'MMM d HH:mm:ss' }}</time>
+            <span [attr.data-audience]="run.caller">{{ run.caller }}</span>
+            <span class="row-end" [attr.aria-label]="passed(run) + ' passed out of ' + total(run)">{{ passed(run) }}/{{ total(run) }}</span>
+            <span class="timing">{{ duration(run.startedAt, run.finishedAt) }}</span>
+            @if (!run.finishedAt || run.cancelled) {
+              <span>{{ run.cancelled ? 'cancelled' : 'running' }}</span>
+            }
+          </button>
+        } @empty { <p class="muted">No runs yet.</p> }
+      </div>
+
+      @if (selectedRun(); as run) {
+        <h2>Steps</h2>
+        <div class="results">
+          @for (result of run.results; track selectedRun()!.id + result.name) {
+            <details class="result" [attr.data-status]="result.status" [open]="result.status === 'failed' || result.status === 'running'">
+              <summary class="result-row">
+                <span class="result-name">{{ result.name }}</span>
+                <span [attr.data-audience]="result.policy">{{ result.policy }}</span>
+                <span class="result-status row-end">{{ result.status }}</span>
+                <span class="timing">{{ duration(result.startedAt, result.finishedAt) }}</span>
+              </summary>
+              <div class="result-output">
+                @if (result.reason) { <p>{{ result.reason }}</p> }
+                @if (result.output) { <pre [ansiOutput]="result.output"></pre> }
+              </div>
+            </details>
+          }
+        </div>
+      }
+    </section>
+  } @else if (!validation.cwd()) {
+    <p>Open the project’s absolute path in the address bar to select it.</p>
   } @else {
-    <p>Open this page with <code>?cwd=/absolute/project/path</code> to select a project.</p>
+    <p>Connecting…</p>
   }
 </main>

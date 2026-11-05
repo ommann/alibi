@@ -1,5 +1,9 @@
 :root {
-  --block-padding: 1lh 1ch;
+  --drag-placeholder-opacity: 0.25;
+  --space-inline: 1ch;
+  --space-block: 1lh;
+  --space-control: 0.25lh;
+  --block-padding: var(--space-block) var(--space-inline);
   font-family: "Liberation Mono", "DejaVu Sans Mono", monospace;
   font-size: 14px;
   line-height: 20px;
@@ -36,8 +40,37 @@ a {
   color: var(--anchor-text);
 }
 
-button, input, select, textarea {
+button, .button, input, select, textarea {
   font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: var(--space-control) var(--space-inline);
+}
+
+button,
+.button {
+  background: var(--button-background);
+}
+
+.button {
+  display: inline-block;
+  text-decoration: none;
+}
+
+button:hover:not(:disabled),
+.button:hover,
+button[aria-pressed="true"],
+select,
+input {
+  color: var(--control-active-text);
+  background: var(--control-active-background);
+}
+
+button:disabled {
+  color: var(--text-secondary);
+  cursor: default;
 }
 
 :focus-visible {

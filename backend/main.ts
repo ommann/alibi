@@ -91,9 +91,10 @@ app.get('/ui/*', async (c) => {
   const file = Bun.file(`dist/ui/browser/${name}`);
   return await file.exists() ? new Response(file) : c.notFound();
 });
-for (const path of ['/', '/presentation']) {
-  app.get(path, async (c) => c.html(await Bun.file('dist/ui/browser/index.html').text()));
-}
+app.get('*', async (c) => {
+  if (/^\/(api|rpc|mcp|manage|ui)(\/|$)/.test(c.req.path)) return c.notFound();
+  return c.html(await Bun.file('dist/ui/browser/index.html').text());
+});
 
 const http = Bun.serve({ hostname: '127.0.0.1', port, idleTimeout: 0, fetch: app.fetch });
 
