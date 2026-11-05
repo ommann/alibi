@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RuleRow } from './rule-row';
+import { JsonEditor } from '../shared/json-editor';
 import { ViewNavigation } from '../shared/view-navigation';
 import { Checkbox } from '../shared/checkbox';
 import { DragDropModule, type CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -9,7 +10,7 @@ import { addESLintStep, assignedRules, eslintStepName, moveESLintRule, ruleSetti
 
 @Component({
   selector: 'app-eslint',
-  imports: [ViewNavigation, Checkbox, DragDropModule, RuleRow],
+  imports: [ViewNavigation, Checkbox, DragDropModule, RuleRow, JsonEditor],
   templateUrl: './eslint.html',
   styleUrl: './eslint.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -87,9 +88,9 @@ export class ESLint {
     void this.change(plan => moveESLintRule(plan, id, from, to));
   }
 
-  updateSetting(event: Event, key: string | null, id: string, index: number): void {
+  updateSetting(value: string, key: string | null, id: string, index: number): void {
     if (key === null) return;
-    void this.change(plan => setESLintRule(plan, key, id, index, JSON.parse(this.value(event))));
+    void this.change(plan => setESLintRule(plan, key, id, index, JSON.parse(value)));
   }
 
   private async change(update: (plan: Plan) => Plan): Promise<boolean> {
@@ -111,7 +112,6 @@ export class ESLint {
     if ((event.target as HTMLElement).closest('button, select, a')) event.preventDefault();
   }
 
-  json(value: unknown): string { return JSON.stringify(value); }
   settingJson(value: unknown): string { return JSON.stringify(value, null, 2); }
   value(event: Event): string { return (event.target as HTMLInputElement).value; }
 }

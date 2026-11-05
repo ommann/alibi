@@ -84,7 +84,7 @@ input::placeholder {
 }
 
 .rule-group {
-  margin-block-end: var(--space-control);
+  margin-block-end: var(--space-block);
 }
 
 .group-heading {
@@ -135,13 +135,7 @@ input::placeholder {
 }
 
 .settings {
-  padding: var(--space-control) var(--space-inline);
-}
-
-textarea {
-  width: 100%;
-  resize: vertical;
-  display: block;
+  background: var(--control-active-background);
 }
 
 .empty {

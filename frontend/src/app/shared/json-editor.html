@@ -1,0 +1,5 @@
+<div class="json-editor-surface">
+  <pre aria-hidden="true" [innerHTML]="highlighted()"></pre>
+  <textarea [attr.aria-label]="label()" [attr.aria-invalid]="!!error()" [value]="draft()" [disabled]="disabled()" rows="1" spellcheck="false" autocapitalize="off" autocomplete="off" (input)="edit($event)" (change)="commit()"></textarea>
+</div>
+@if (error()) { <p class="json-editor-error" role="alert">{{ error() }}</p> }

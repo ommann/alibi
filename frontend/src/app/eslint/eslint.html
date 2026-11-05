@@ -54,7 +54,7 @@
                 <summary class="rule-row" (click)="summaryClick($event)"><app-rule-row [ruleId]="rule.id" [group]="bucket.key" [targets]="buckets()" [disabled]="validation.editingDisabled()" (move)="move(rule.id, bucket.key, $event)" /></summary>
                 <div class="settings">
                   @for (setting of rule.settings; track $index) {
-                    <textarea [attr.aria-label]="rule.id + ' setting ' + ($index + 1)" [value]="settingJson(setting)" [rows]="settingJson(setting).split('\n').length" spellcheck="false" [disabled]="validation.editingDisabled()" (change)="updateSetting($event, bucket.key, rule.id, $index)"></textarea>
+                    <app-json-editor [label]="rule.id + ' setting ' + ($index + 1)" [value]="settingJson(setting)" [disabled]="validation.editingDisabled()" (save)="updateSetting($event, bucket.key, rule.id, $index)" />
                   }
                 </div>
               </details>
