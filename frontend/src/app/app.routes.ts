@@ -11,6 +11,10 @@ const projectMatcher: UrlMatcher = segments => {
 export const routes: Routes = [
   {
     matcher: projectMatcher,
+    title: route => {
+      const name = route.paramMap.get('cwd')?.split('/').filter(Boolean).at(-1);
+      return name ? `${name} — Alibi` : 'Alibi';
+    },
     loadComponent: () => import('./project').then(m => m.Project),
     children: [
       { path: '', pathMatch: 'full', loadComponent: () => import('./home/home').then(m => m.Home) },
