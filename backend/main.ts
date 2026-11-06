@@ -66,7 +66,7 @@ app.on(['GET', 'POST', 'DELETE'], ['/mcp', '/manage/mcp'], async (c) => {
   return (await transport.handleRequest(c, body)) ?? c.body(null, 202);
 });
 
-app.get('/api/health', (c) => c.json({ service: 'hello-world' }));
+app.get('/api/health', (c) => c.json({ service: 'alibi' }));
 app.get('/api/setting', (c) => c.json({ number: store.get() }));
 
 app.post('/api/setting', async (c) => {

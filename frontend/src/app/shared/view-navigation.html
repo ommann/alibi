@@ -1,4 +1,4 @@
-<span class="project" [title]="validation.cwd() || ''">{{ validation.cwd() || 'Validate' }}</span>
+<span class="project" [title]="validation.cwd() || ''">{{ validation.cwd() || 'Alibi' }}</span>
 @if (validation.error(); as error) { <span class="connection-error" role="alert">{{ error }}</span> }
 <nav aria-label="Views">
   <a class="button" [routerLink]="validation.cwd()" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Validation</a>

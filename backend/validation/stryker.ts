@@ -34,7 +34,7 @@ export async function runStryker(context: Context, execute = runCommand): Promis
   if (typeof minimum !== "number" || !Number.isFinite(minimum) || minimum < 0 || minimum > 100) {
     throw new Error("minMutationScore must be between 0 and 100");
   }
-  const temporary = await mkdtemp(join(tmpdir(), "validate-stryker-"));
+  const temporary = await mkdtemp(join(tmpdir(), "alibi-stryker-"));
   try {
     const configFile = join(temporary, "stryker.config.mjs");
     const original = target.configFile.endsWith(".json")

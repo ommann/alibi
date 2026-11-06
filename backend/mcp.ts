@@ -3,12 +3,12 @@ import { registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/e
 import { z } from 'zod';
 import { SettingStore } from './store';
 
-export const APP_URI = 'ui://hello/world.html';
+export const APP_URI = 'ui://alibi/app.html';
 export const settingSchema = z.union([z.literal(1), z.literal(2)]);
 
 export function createMcpServer(store: SettingStore, readHtml: () => Promise<string>, management = false) {
   const server = new McpServer({
-    name: management ? 'hello-management' : 'hello-world',
+    name: management ? 'alibi-management' : 'alibi',
     version: '1.0.0',
   });
 
@@ -50,7 +50,7 @@ export function createMcpServer(store: SettingStore, readHtml: () => Promise<str
     };
   });
 
-  registerAppResource(server, 'Hello world', APP_URI, {
+  registerAppResource(server, 'Alibi', APP_URI, {
     description: 'Greeting.',
   }, async () => ({
     contents: [{ uri: APP_URI, mimeType: RESOURCE_MIME_TYPE, text: await readHtml() }],

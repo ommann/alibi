@@ -166,7 +166,7 @@ export class Validation {
     if (!(await stat(cwd)).isDirectory()) { throw new Error(`Not a directory: ${cwd}`); }
 
     const steps = options.steps ?? await loadSteps();
-    const configFile = options.persist === false ? undefined : join(cwd, ".validate.json");
+    const configFile = options.persist === false ? undefined : join(cwd, ".alibi.json");
     let plan = checkPlan({ groups: [], policies: {} }, steps);
     if (configFile && await Bun.file(configFile).exists()) {
       plan = checkPlan(await Bun.file(configFile).json(), steps);

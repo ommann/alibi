@@ -1,6 +1,6 @@
 // Browser-safe JSON contracts shared by the Bun service and Angular client.
 export type Health = {
-  service: 'validate';
+  service: 'alibi';
   version: 1;
   instanceId: string;
 };

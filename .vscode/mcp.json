@@ -1,10 +1,10 @@
 {
   "servers": {
-    "hello-world": {
+    "alibi": {
       "type": "http",
       "url": "http://127.0.0.1:3001/mcp"
     },
-    "hello-management": {
+    "alibi-management": {
       "type": "http",
       "url": "http://127.0.0.1:3001/manage/mcp"
     }

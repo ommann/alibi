@@ -1,5 +1,5 @@
 {
-  description = "Standalone Joke MCP App development tools";
+  description = "Alibi development tools";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   outputs = { nixpkgs, ... }:
     let

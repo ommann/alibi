@@ -12,8 +12,8 @@ validationHttp.use('*', async (c, next) => {
     return c.json({ error: 'Cross-origin request rejected' }, 403);
   }
   if (c.req.method === 'POST' &&
-      (c.req.header('X-Validate') !== '1' || !c.req.header('Content-Type')?.startsWith('application/json'))) {
-    return c.json({ error: 'JSON and X-Validate header required' }, 403);
+      (c.req.header('X-Alibi') !== '1' || !c.req.header('Content-Type')?.startsWith('application/json'))) {
+    return c.json({ error: 'JSON and X-Alibi header required' }, 403);
   }
   await next();
 });

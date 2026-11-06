@@ -51,7 +51,7 @@ export async function coverageTargets(cwd: string): Promise<CoverageTarget[]> {
       return;
     }
     for (const entry of await readdir(directory, { withFileTypes: true })) {
-      if (entry.isDirectory() && !ignored.has(entry.name) && !entry.name.startsWith(".validate-coverage-")) {
+      if (entry.isDirectory() && !ignored.has(entry.name) && !entry.name.startsWith(".alibi-coverage-")) {
         await visit(join(directory, entry.name));
       }
     }
@@ -62,7 +62,7 @@ export async function coverageTargets(cwd: string): Promise<CoverageTarget[]> {
 
 export async function runCoverageTarget(context: Context, target: CoverageTarget, execute = runCommand): Promise<number> {
   const minimum = Number(context.config?.minLineCoverage ?? 80);
-  const temporary = await mkdtemp(join(target.cwd, ".validate-coverage-"));
+  const temporary = await mkdtemp(join(target.cwd, ".alibi-coverage-"));
   const runnerConfig = join(temporary, "runner.mjs");
   const reportsDirectory = join(temporary, "reports");
   try {
@@ -73,7 +73,7 @@ export default async env => {
   const base = (typeof original === "function" ? await original(env) : await original) ?? {};
   return { ...base,
     plugins: [...(base.plugins ?? []), {
-      name: "validate:coverage-threshold",
+      name: "alibi:coverage-threshold",
       // Apply after Angular merges workspace options, so its line threshold cannot override this parameter.
       enforce: "post",
       config: () => ({ test: { coverage: { thresholds: { lines: ${minimum}, autoUpdate: false } } } }),
