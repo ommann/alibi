@@ -221,8 +221,8 @@ export class Validation {
     return { cwd: this.cwd, scripts: pkg?.scripts ?? {} };
   }
 
-  private async detectWith(context: Context) {
-    for (const step of this.steps) {
+  private async detectWith(context: Context, names?: string[]) {
+    for (const step of this.steps.filter(step => !names || names.includes(step.name))) {
       context.signal?.throwIfAborted();
 
       try {
@@ -259,7 +259,18 @@ export class Validation {
     return this.execute(caller);
   }
 
-  private async execute(caller: "agent" | "user", agentReady?: (run: Run) => void, onStep?: (name: string) => void): Promise<Run> {
+  async runESLint(names: string[]): Promise<Run> {
+    if (!names.length) { throw new Error('Select at least one ESLint analysis.'); }
+    const available = new Set(this.steps.map(step => step.name));
+    for (const name of names) {
+      if (!(name === 'eslint' || name.startsWith('eslint:')) || !available.has(name)) {
+        throw new Error(`Unknown ESLint analysis: ${name}`);
+      }
+    }
+    return this.execute('user', undefined, undefined, [...new Set(names)]);
+  }
+
+  private async execute(caller: "agent" | "user", agentReady?: (run: Run) => void, onStep?: (name: string) => void, names?: string[]): Promise<Run> {
     if (this.busy) { throw new Error("Validation is busy"); }
     this.busy = true;
     const controller = new AbortController();
@@ -269,6 +280,10 @@ export class Validation {
     this.runDone = done.promise;
 
     const plan = structuredClone(this.plan);
+    if (names) {
+      plan.groups = [names];
+      plan.policies = Object.fromEntries(names.map(name => [name, 'user' as const]));
+    }
     const run: Run = {
       id: crypto.randomUUID(), caller, startedAt: now(), plan,
       results: plan.groups.flat().map(name => ({ name, policy: plan.policies[name]!, status: "pending", output: "" })),
@@ -277,7 +292,7 @@ export class Validation {
     try {
       const context = { ...await this.context(), signal };
       signal.throwIfAborted();
-      await this.detectWith(context);
+      await this.detectWith(context, names);
       signal.throwIfAborted();
 
       for (const result of run.results) {

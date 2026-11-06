@@ -32,6 +32,27 @@ export function createMcpServer(management = false, cwd?: string) {
       }
     });
 
+    server.registerTool('eslint_run', {
+      description: 'Run selected configured ESLint analyses regardless of their normal policies. Returns CLI-style diagnostics and records results in the UI without changing the saved plan. Refresh configuration first after external edits. Fails while validation is busy.',
+      inputSchema: {
+        cwd: z.string().trim().min(1).describe('Project directory.'),
+        analyses: z.array(z.string().min(1)).min(1).describe('Analysis names, for example eslint:stage2.'),
+      },
+    }, async ({ cwd, analyses }) => {
+      try {
+        const run = await (await project(cwd)).runESLint(analyses);
+        return {
+          content: run.results.map(result => ({
+            type: 'text' as const,
+            text: `${result.name}: ${result.status}\n${result.output}${result.reason ? `${result.reason}\n` : ''}`,
+          })),
+          ...(run.cancelled || run.results.some(result => result.status === 'failed') ? { isError: true } : {}),
+        };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
     return server;
   }
 
