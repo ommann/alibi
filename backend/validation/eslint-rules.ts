@@ -1,6 +1,7 @@
 import { builtinRules } from 'eslint/use-at-your-own-risk';
 import tseslint from 'typescript-eslint';
 import solid from 'eslint-plugin-solid';
+import perfectionist from 'eslint-plugin-perfectionist';
 import type { ESLintRule } from '../../shared/contracts.ts';
 
 type CatalogRule = {
@@ -14,6 +15,7 @@ type CatalogRule = {
 export function eslintRuleCatalog(): ESLintRule[] {
   const entries = [
     ...builtinRules.entries(),
+    ...Object.entries(perfectionist.rules ?? {}).map(([name, rule]) => [`perfectionist/${name}`, rule] as const),
     ...Object.entries(solid.rules).map(([name, rule]) => [`solid/${name}`, rule] as const),
     ...Object.entries((tseslint.plugin as unknown as { rules: Record<string, CatalogRule> }).rules).map(([name, rule]) => [`@typescript-eslint/${name}`, rule] as const),
   ];

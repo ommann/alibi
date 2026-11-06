@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import eslint from './steps/eslint.ts';
 import type { Context } from './step.ts';
+import { eslintRuleCatalog } from './eslint-rules.ts';
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -58,6 +59,17 @@ test('type-aware rules use configured parser services', async () => {
   expect(await eslint.run(f.context)).toBe(1);
   expect(f.output()).toContain('@typescript-eslint/no-floating-promises');
   expect(f.output()).not.toContain('Parsing error');
+});
+
+test('Perfectionist rules are catalogued and execute with options', async () => {
+  expect(eslintRuleCatalog().some(rule => rule.id === 'perfectionist/sort-objects')).toBe(true);
+  const f = await fixture({ 'index.js': 'const value = { zebra: 1, apple: 2 };' }, {
+    rules: { 'perfectionist/sort-objects': ['error', { type: 'alphabetical', order: 'asc' }] },
+  });
+  expect(await eslint.run(f.context)).toBe(1);
+  expect(f.output()).toContain('perfectionist/sort-objects');
+  await Bun.write(join(f.context.cwd, 'index.js'), 'const value = { apple: 2, zebra: 1 };');
+  expect(await eslint.run(f.context)).toBe(0);
 });
 
 test('warnings are reported without failing', async () => {

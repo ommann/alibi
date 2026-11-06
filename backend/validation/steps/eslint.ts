@@ -1,6 +1,7 @@
 import { ESLint, type Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 import solid from 'eslint-plugin-solid';
+import perfectionist from 'eslint-plugin-perfectionist';
 import { join, resolve } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { isESLintFileConfig, type ESLintStepConfig } from '../../../shared/contracts.ts';
@@ -26,7 +27,7 @@ async function engine(context: Context) {
       return {
         files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
         ...item,
-        plugins: { '@typescript-eslint': tseslint.plugin, solid, ...item.plugins },
+        plugins: { '@typescript-eslint': tseslint.plugin, solid, perfectionist, ...item.plugins },
         languageOptions: {
           parser: tseslint.parser,
           ...item.languageOptions,
