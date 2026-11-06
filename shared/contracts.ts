@@ -60,7 +60,7 @@ export type Result = {
 
 export type Run = {
   id: string;
-  caller: 'agent' | 'user';
+  caller: 'agent' | 'user' | 'assistant';
   cancelled?: boolean;
   startedAt: string;
   agentFinishedAt?: string;

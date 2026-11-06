@@ -267,10 +267,10 @@ export class Validation {
         throw new Error(`Unknown ESLint analysis: ${name}`);
       }
     }
-    return this.execute('user', undefined, undefined, [...new Set(names)]);
+    return this.execute('assistant', undefined, undefined, [...new Set(names)]);
   }
 
-  private async execute(caller: "agent" | "user", agentReady?: (run: Run) => void, onStep?: (name: string) => void, names?: string[]): Promise<Run> {
+  private async execute(caller: Run['caller'], agentReady?: (run: Run) => void, onStep?: (name: string) => void, names?: string[]): Promise<Run> {
     if (this.busy) { throw new Error("Validation is busy"); }
     this.busy = true;
     const controller = new AbortController();

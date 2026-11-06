@@ -29,6 +29,8 @@ test('management runs selected ESLint analyses independent of policies without s
     expect(JSON.stringify(result.content)).toContain('no-debugger');
     expect(JSON.stringify(result.content)).toContain('eslint:stage3: passed');
     expect(runner.runs.at(-1)!.results.map(result => result.name)).toEqual(['eslint:stage2', 'eslint:stage3']);
+    expect(runner.runs.at(-1)!.caller).toBe('assistant');
+    expect(runner.snapshot().runs.at(-1)!.caller).toBe('assistant');
     expect(runner.plan).toEqual(plan);
     expect(await Bun.file(join(cwd, '.alibi.json')).text()).toBe(config);
     const invalid = await client.callTool({ name: 'eslint_run', arguments: { cwd, analyses: ['npm:build'] } });

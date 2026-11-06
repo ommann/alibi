@@ -20,7 +20,7 @@ const snapshot: z.ZodType<Snapshot> = z.object({
     detection: z.object({ applicable: z.boolean(), error: z.string().optional(), checkedAt: z.string() }).nullable(),
   })),
   runs: z.array(z.object({
-    id: z.string(), caller: z.enum(['agent', 'user']), cancelled: z.boolean().optional(), startedAt: z.string(), agentFinishedAt: z.string().optional(), finishedAt: z.string().optional(), plan,
+    id: z.string(), caller: z.enum(['agent', 'user', 'assistant']), cancelled: z.boolean().optional(), startedAt: z.string(), agentFinishedAt: z.string().optional(), finishedAt: z.string().optional(), plan,
     results: z.array(z.object({
       name: z.string(), policy, status: z.enum(['pending', 'running', 'passed', 'failed', 'skipped', 'cancelled']), output: z.string(), reason: z.string().optional(), exitCode: z.number().optional(), startedAt: z.string().optional(), finishedAt: z.string().optional(),
     })),

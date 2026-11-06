@@ -123,6 +123,11 @@ span[data-audience="agent"] {
   background: var(--audience-agent-background);
 }
 
+span[data-audience="assistant"] {
+  color: var(--audience-assistant);
+  background: var(--audience-assistant-background);
+}
+
 span[data-audience] {
   padding-inline: var(--space-inline);
   border-radius: var(--audience-pill-radius);
