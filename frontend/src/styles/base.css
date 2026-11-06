@@ -1,4 +1,5 @@
 :root {
+  scrollbar-gutter: stable;
   --drag-placeholder-opacity: 0.25;
   --space-inline: 1ch;
   --space-block: 1lh;
