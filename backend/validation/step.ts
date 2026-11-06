@@ -17,6 +17,7 @@ export type { NumberParameter } from "../../shared/contracts.ts";
 
 export type Step = {
   name: string;
+  expandedFrom?: string;
   // Instances are configured under the definition's top-level plan field.
   instances?: true;
   parameters?: Record<string, NumberParameter>;

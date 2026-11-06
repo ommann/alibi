@@ -2,6 +2,7 @@ import { resolve, join, isAbsolute } from "node:path";
 import { stat, rename } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import type { Context, Step } from "./step.ts";
+import { workspaceTests } from './workspace-tests.ts';
 
 import type { Plan, Detection, Run, Snapshot } from "../../shared/contracts.ts";
 
@@ -61,12 +62,33 @@ function configuredSteps(plan: unknown, definitions: Step[]): Step[] {
 }
 
 export function checkPlan(value: unknown, definitions: Step[]): Plan {
-  const plan = value as Plan & { useNix?: boolean };
+  let plan = value as Plan & { useNix?: boolean };
 
   if (!plan || !Array.isArray(plan.groups) || !plan.policies || typeof plan.policies !== "object" || Array.isArray(plan.policies)) {
     throw new Error("Plan must contain groups and policies");
   }
 
+  if (plan.groups.some(group => !Array.isArray(group) || group.length === 0)) {
+    throw new Error("Groups must be non-empty arrays");
+  }
+
+  const units = definitions.filter(step => step.expandedFrom === 'npm:test');
+  if (units.length) {
+    plan = structuredClone(plan);
+    const names = units.map(step => step.name);
+    plan.groups = plan.groups.flatMap(group => {
+      const rest = group.filter(name => name !== 'npm:test' && !names.includes(name));
+      const selected = group.includes('npm:test') ? names : group.filter(name => names.includes(name));
+      return [...(rest.length ? [rest] : []), ...selected.map(name => [name])];
+    });
+    for (const name of names) {
+      plan.policies[name] ??= plan.policies['npm:test'] ?? 'agent';
+    }
+    delete plan.policies['npm:test'];
+    if (plan.removed?.includes('npm:test')) {
+      plan.removed = [...plan.removed.filter(name => name !== 'npm:test'), ...names];
+    }
+  }
   const steps = configuredSteps(plan, definitions);
   if (new Set(steps.map(step => step.name)).size !== steps.length) { throw new Error("Duplicate analysis step name"); }
 
@@ -165,7 +187,11 @@ export class Validation {
     cwd = resolve(cwd);
     if (!(await stat(cwd)).isDirectory()) { throw new Error(`Not a directory: ${cwd}`); }
 
-    const steps = options.steps ?? await loadSteps();
+    let steps = options.steps ?? await loadSteps();
+    if (!options.steps) {
+      const units = await workspaceTests(cwd);
+      if (units.length) steps = [...steps.filter(step => step.name !== 'npm:test'), ...units];
+    }
     const configFile = options.persist === false ? undefined : join(cwd, ".alibi.json");
     let plan = checkPlan({ groups: [], policies: {} }, steps);
     if (configFile && await Bun.file(configFile).exists()) {
