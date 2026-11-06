@@ -19,7 +19,7 @@ test('developer MCP exposes only validation and returns only errors', async () =
     expect(tools.map(tool => tool.name)).toEqual(['validate']);
     expect(tools[0]!.inputSchema.properties).toEqual({});
     const config = await Bun.file('.alibi.json').json();
-    config.policies = Object.fromEntries(Object.keys(config.policies).map(name => [name, name === 'build' ? 'agent' : 'off']));
+    config.policies = Object.fromEntries(Object.keys(config.policies).map(name => [name, name === 'npm:build' ? 'agent' : 'off']));
     await Bun.write(join(cwd, '.alibi.json'), JSON.stringify(config));
     await Bun.write(join(cwd, 'package.json'), JSON.stringify({ scripts: { build: 'echo HAPPY_OUTPUT' } }));
     const success = await client.callTool({ name: 'validate', arguments: {} });

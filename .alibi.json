@@ -16,9 +16,9 @@
   },
   "groups": [
     [
-      "build",
-      "lint",
-      "test"
+      "npm:build",
+      "npm:lint",
+      "npm:test"
     ],
     [
       "ast-grep-no-discarded-router-navigation",
@@ -53,12 +53,12 @@
     "ast-grep-no-dynamic-code": "off",
     "ast-grep-no-sanitization-bypass": "off",
     "ast-grep-no-subscribe": "off",
-    "build": "agent",
+    "npm:build": "agent",
     "eslint:fun": "agent",
-    "lint": "agent",
+    "npm:lint": "agent",
     "never-applicable": "off",
     "stryker-mutation": "off",
-    "test": "agent",
+    "npm:test": "agent",
     "typescript-empty-lines": "off",
     "vitest-coverage": "off"
   },
