@@ -1,12 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import { z } from 'zod';
 import { SettingStore } from './store';
-
-export const APP_URI = 'ui://alibi/app.html';
+import { project } from './validation-projects';
 export const settingSchema = z.union([z.literal(1), z.literal(2)]);
 
-export function createMcpServer(store: SettingStore, readHtml: () => Promise<string>, management = false) {
+export function createMcpServer(store: SettingStore, management = false, cwd?: string) {
+  if (!management && !cwd) throw new Error('Developer MCP requires a project directory.');
   const server = new McpServer({
     name: management ? 'alibi-management' : 'alibi',
     version: '1.0.0',
@@ -36,25 +35,22 @@ export function createMcpServer(store: SettingStore, readHtml: () => Promise<str
     return server;
   }
 
-  server.registerTool('hello_world', {
-    description: 'Say hello.',
+  server.registerTool('validate', {
+    description: 'Run agent-policy validation for a project. Returns only failures; success produces no output.',
     inputSchema: {},
-    annotations: { readOnlyHint: true },
-    _meta: { ui: { resourceUri: APP_URI } },
   }, async () => {
-    const message = `Hello, World ${store.get()}`;
-
-    return {
-      content: [{ type: 'text' as const, text: message }],
-      structuredContent: { message },
-    };
+    try {
+      const report = await (await project(cwd!)).runForAgent();
+      const content = report.failures.map(failure => ({
+        type: 'text' as const,
+        text: `Failed: ${failure.name}\n${failure.output}`,
+      }));
+      if (report.cancelled) content.push({ type: 'text', text: 'Validation cancelled.' });
+      return { content, ...(report.exitCode !== 0 ? { isError: true } : {}) };
+    } catch (error) {
+      return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+    }
   });
-
-  registerAppResource(server, 'Alibi', APP_URI, {
-    description: 'Greeting.',
-  }, async () => ({
-    contents: [{ uri: APP_URI, mimeType: RESOURCE_MIME_TYPE, text: await readHtml() }],
-  }));
 
   return server;
 }

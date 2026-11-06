@@ -13,12 +13,11 @@ const port = config.PORT;
 const origin = `http://localhost:${port}`;
 
 const store = new SettingStore();
-const appHtml = () => Bun.file('dist/app/index.html').text();
 
 type Session = {
   transport: StreamableHTTPTransport;
   server: ReturnType<typeof createMcpServer>;
-  management: boolean;
+  path: string;
 };
 
 const sessions = new Map<string, Session>();
@@ -35,13 +34,16 @@ app.onError((error, c) => {
   return c.json({ error: 'Internal server error' }, 500);
 });
 
-app.on(['GET', 'POST', 'DELETE'], ['/mcp', '/manage/mcp'], async (c) => {
-  const management = c.req.path === '/manage/mcp';
+app.on(['GET', 'POST', 'DELETE'], '*', async (c, next) => {
+  const path = c.req.path;
+  if (!path.endsWith('/mcp') || path === '/mcp') return next();
+  const management = path === '/manage/mcp';
+  const cwd = management ? undefined : decodeURIComponent(path.slice(0, -'/mcp'.length));
   const sessionId = c.req.header('mcp-session-id');
 
   if (sessionId) {
     const session = sessions.get(sessionId);
-    if (!session || session.management !== management)
+    if (!session || session.path !== path)
       return c.json({ error: 'MCP session not found; reconnect.' }, 404);
     return (await session.transport.handleRequest(c)) ?? c.body(null, 202);
   }
@@ -49,11 +51,11 @@ app.on(['GET', 'POST', 'DELETE'], ['/mcp', '/manage/mcp'], async (c) => {
   const body: unknown = await c.req.json();
   if (!isInitializeRequest(body)) return c.json({ error: 'Expected MCP initialize request.' }, 400);
 
-  const server = createMcpServer(store, appHtml, management);
+  const server = createMcpServer(store, management, cwd);
   const transport = new StreamableHTTPTransport({
     sessionIdGenerator: () => crypto.randomUUID(),
     onsessioninitialized: (id) => {
-      sessions.set(id, { transport, server, management });
+      sessions.set(id, { transport, server, path });
     },
   });
 
@@ -98,7 +100,7 @@ app.get('*', async (c) => {
 
 const http = Bun.serve({ hostname: '127.0.0.1', port, idleTimeout: 0, fetch: app.fetch });
 
-console.log(`Web UI: ${origin}\nMCP: ${origin}/mcp\nManagement MCP: ${origin}/manage/mcp`);
+console.log(`Web UI: ${origin}\nMCP: ${origin}/<absolute-project-path>/mcp\nManagement MCP: ${origin}/manage/mcp`);
 
 async function shutdown() {
   for (const { server } of sessions.values()) await server.close();
