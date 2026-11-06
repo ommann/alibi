@@ -46,7 +46,7 @@ test('management MCP returns configuration paths for multiple projects', async (
   try {
     await server.connect(serverTransport);
     await client.connect(clientTransport);
-    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['get_alibi_config_path']);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['get_alibi_config_path', 'refresh_alibi_config']);
     for (const cwd of ['/home/user/project-one', '/home/user/project-two']) {
       const result = await client.callTool({ name: 'get_alibi_config_path', arguments: { cwd } });
       expect(result.content).toEqual([{ type: 'text', text: `${cwd}/.alibi.json` }]);

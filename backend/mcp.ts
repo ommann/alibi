@@ -20,6 +20,18 @@ export function createMcpServer(management = false, cwd?: string) {
       content: [{ type: 'text' as const, text: resolve(cwd, '.alibi.json') }],
     }));
 
+    server.registerTool('refresh_alibi_config', {
+      description: 'Reload a project’s .alibi.json into Alibi after editing it externally. Updates the UI without writing the file. Invalid configuration preserves the current plan. Fails while validation is busy.',
+      inputSchema: { cwd: z.string().trim().min(1).describe('Project directory.') },
+    }, async ({ cwd }) => {
+      try {
+        await (await project(cwd)).refreshConfig();
+        return { content: [{ type: 'text' as const, text: 'Alibi configuration refreshed.' }] };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
     return server;
   }
 

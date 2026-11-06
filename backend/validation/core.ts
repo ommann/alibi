@@ -179,6 +179,18 @@ export class Validation {
     return { cwd: this.cwd, busy: this.busy, running: !!this.controller, stopping: this.controller?.signal.aborted ?? false, plan: this.plan, steps: this.steps.map(step => ({ name: step.name, parameters: step.parameters ?? {}, detection: this.detections[step.name] ?? null })), runs: this.runs };
   }
 
+  async refreshConfig() {
+    if (this.busy) { throw new Error("Validation is busy"); }
+    if (!this.configFile) { throw new Error("No configuration file configured"); }
+
+    this.busy = true;
+    try {
+      const plan = checkPlan(await Bun.file(this.configFile).json(), this.definitions);
+      this.plan = plan;
+      this.detections = {};
+    } finally { this.busy = false; }
+  }
+
   async configure(value: unknown) {
     if (this.busy) { throw new Error("Validation is busy"); }
 
