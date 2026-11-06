@@ -36,8 +36,8 @@ app.onError((error, c) => {
 
 app.on(['GET', 'POST', 'DELETE'], '*', async (c, next) => {
   const path = c.req.path;
-  if (!path.endsWith('/mcp') || path === '/mcp') return next();
-  const management = path === '/manage/mcp';
+  if (!path.endsWith('/mcp')) return next();
+  const management = path === '/mcp';
   const cwd = management ? undefined : decodeURIComponent(path.slice(0, -'/mcp'.length));
   const sessionId = c.req.header('mcp-session-id');
 
@@ -51,7 +51,7 @@ app.on(['GET', 'POST', 'DELETE'], '*', async (c, next) => {
   const body: unknown = await c.req.json();
   if (!isInitializeRequest(body)) return c.json({ error: 'Expected MCP initialize request.' }, 400);
 
-  const server = createMcpServer(store, management, cwd);
+  const server = createMcpServer(management, cwd);
   const transport = new StreamableHTTPTransport({
     sessionIdGenerator: () => crypto.randomUUID(),
     onsessioninitialized: (id) => {
@@ -100,7 +100,7 @@ app.get('*', async (c) => {
 
 const http = Bun.serve({ hostname: '127.0.0.1', port, idleTimeout: 0, fetch: app.fetch });
 
-console.log(`Web UI: ${origin}\nMCP: ${origin}/<absolute-project-path>/mcp\nManagement MCP: ${origin}/manage/mcp`);
+console.log(`Web UI: ${origin}\nMCP: ${origin}/<absolute-project-path>/mcp\nManagement MCP: ${origin}/mcp`);
 
 async function shutdown() {
   for (const { server } of sessions.values()) await server.close();

@@ -1,36 +1,24 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { SettingStore } from './store';
+import { resolve } from 'node:path';
 import { project } from './validation-projects';
 export const settingSchema = z.union([z.literal(1), z.literal(2)]);
 
-export function createMcpServer(store: SettingStore, management = false, cwd?: string) {
+export function createMcpServer(management = false, cwd?: string) {
   if (!management && !cwd) throw new Error('Developer MCP requires a project directory.');
   const server = new McpServer({
     name: management ? 'alibi-management' : 'alibi',
     version: '1.0.0',
   });
 
-  const settingResult = () => ({
-    content: [{ type: 'text' as const, text: String(store.get()) }],
-    structuredContent: { number: store.get() },
-  });
-
   if (management) {
-    server.registerTool('get_setting_number', {
-      description: 'Get setting.',
-      inputSchema: {},
+    server.registerTool('get_alibi_config_path', {
+      description: 'Get the absolute Alibi configuration file path for a project. The file may not exist yet.',
+      inputSchema: { cwd: z.string().trim().min(1).describe('Project directory.') },
       annotations: { readOnlyHint: true },
-    }, async () => settingResult());
-
-    server.registerTool('set_setting_number', {
-      description: 'Set setting.',
-      inputSchema: { number: settingSchema },
-    }, async ({ number }) => {
-      store.set(number);
-
-      return settingResult();
-    });
+    }, async ({ cwd }) => ({
+      content: [{ type: 'text' as const, text: resolve(cwd, '.alibi.json') }],
+    }));
 
     return server;
   }

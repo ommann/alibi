@@ -2,11 +2,11 @@
   "servers": {
     "alibi": {
       "type": "http",
-      "url": "http://127.0.0.1:3001/mcp"
+      "url": "http://127.0.0.1:43127${workspaceFolder}/mcp"
     },
     "alibi-management": {
       "type": "http",
-      "url": "http://127.0.0.1:3001/manage/mcp"
+      "url": "http://127.0.0.1:43127/mcp"
     }
   }
 }

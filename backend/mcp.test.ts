@@ -5,12 +5,11 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createMcpServer } from './mcp';
-import { SettingStore } from './store';
 import { project } from './validation-projects';
 
 test('developer MCP exposes only validation and returns only errors', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'alibi-mcp-'));
-  const server = createMcpServer(new SettingStore(), false, cwd);
+  const server = createMcpServer(false, cwd);
   const client = new Client({ name: 'test', version: '1.0.0' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   try {
@@ -33,11 +32,27 @@ test('developer MCP exposes only validation and returns only errors', async () =
     expect(failure.isError).toBe(true);
     expect(JSON.stringify(failure.content)).toContain('FAILURE_OUTPUT');
     expect(JSON.stringify(failure)).not.toContain('HAPPY_OUTPUT');
-
-
   } finally {
     await client.close();
     await server.close();
     await rm(cwd, { recursive: true, force: true });
+  }
+});
+
+test('management MCP returns configuration paths for multiple projects', async () => {
+  const server = createMcpServer(true);
+  const client = new Client({ name: 'test', version: '1.0.0' });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  try {
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['get_alibi_config_path']);
+    for (const cwd of ['/home/user/project-one', '/home/user/project-two']) {
+      const result = await client.callTool({ name: 'get_alibi_config_path', arguments: { cwd } });
+      expect(result.content).toEqual([{ type: 'text', text: `${cwd}/.alibi.json` }]);
+    }
+  } finally {
+    await client.close();
+    await server.close();
   }
 });
