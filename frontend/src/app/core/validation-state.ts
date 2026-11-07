@@ -61,9 +61,20 @@ export class ValidationState {
     await this.action(cwd => this.rpc.run({ cwd }));
   }
 
+  readonly stopPending = signal(false);
+
   async stop(): Promise<void> {
-    if (this.pending()) return;
-    await this.action(cwd => this.rpc.stop({ cwd }));
+    const cwd = this.cwd();
+    if (!cwd || this.stopPending()) return;
+    this.stopPending.set(true);
+    this.actionError.set(null);
+    try {
+      await this.rpc.stop({ cwd });
+    } catch (error) {
+      if (this.cwd() === cwd) this.actionError.set(String(error));
+    } finally {
+      this.stopPending.set(false);
+    }
   }
 
   private async action(operation: (cwd: string) => Promise<unknown>): Promise<void> {

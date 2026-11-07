@@ -5,7 +5,7 @@
   @if (validation.state(); as state) {
     <div class="actions">
       <button type="button" [disabled]="validation.editingDisabled()" (click)="validation.run()">Run</button>
-      <button type="button" [disabled]="!state.running || state.stopping || validation.pending()" (click)="validation.stop()">{{ state.stopping ? 'Stopping…' : 'Stop' }}</button>
+      <button type="button" [disabled]="!state.running || state.stopping || validation.stopPending()" (click)="validation.stop()">{{ state.stopping || validation.stopPending() ? 'Stopping…' : 'Stop' }}</button>
     </div>
 
     <section aria-labelledby="analyses-heading">
