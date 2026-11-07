@@ -20,7 +20,7 @@
           <div class="analysis-list" [class.empty-group]="$last" cdkDropList [cdkDropListData]="group" [cdkDropListDisabled]="validation.editingDisabled()" [attr.aria-label]="$last ? 'New analysis group' : 'Analysis group ' + (groupIndex + 1)" (cdkDropListDropped)="dropAnalysis($event)">
           @for (name of group; track name) {
             <details class="analysis" cdkDrag [cdkDragData]="name" [cdkDragDisabled]="validation.editingDisabled()">
-              <summary class="analysis-row" (click)="summaryClick($event)">
+              <summary class="analysis-row" [class.analysis-unavailable]="unavailable(name)" (click)="summaryClick($event)">
                 <span class="analysis-name" cdkDragHandle>{{ name }}</span>
                 <span class="policies" role="group" [attr.aria-label]="name + ' policy'">
                   @for (policy of policies; track policy) {
@@ -53,7 +53,7 @@
         <details>
           <summary>Available analyses ({{ disabled().length }})</summary>
           @for (analysis of disabled(); track analysis.name) {
-            <div class="catalog-row"><span>{{ analysis.name }}</span><button type="button" [disabled]="validation.editingDisabled()" (click)="enable(analysis.name)">Enable</button></div>
+            <div class="catalog-row" [class.analysis-unavailable]="unavailable(analysis.name)"><span>{{ analysis.name }}</span><button type="button" [disabled]="validation.editingDisabled()" (click)="enable(analysis.name)">Enable</button></div>
           }
         </details>
       }
@@ -79,7 +79,7 @@
         <h2>Steps</h2>
         <div class="results">
           @for (result of visibleResults(); track selectedRun()!.id + result.name) {
-            <details class="result" [attr.data-status]="result.status" [open]="result.status === 'failed' || result.status === 'running'">
+            <details class="result" [attr.data-status]="result.status" [open]="result.status === 'failed'">
               <summary class="result-row">
                 <span class="result-name">{{ result.name }}</span>
                 <span [attr.data-audience]="result.policy">{{ result.policy }}</span>

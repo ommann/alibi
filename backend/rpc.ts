@@ -13,6 +13,7 @@ export const router = implementation.router({
   configure: implementation.configure.handler(async ({ input }) => {
     const runner = await project(input.cwd);
     await runner.configure(input.plan);
+    await runner.detect();
     return runner.snapshot();
   }),
 
@@ -30,6 +31,7 @@ export const router = implementation.router({
 
   watch: implementation.watch.handler(async function* ({ input, signal }) {
     const runner = await project(input.cwd);
+    if (!runner.busy) await runner.detect();
     let previous = '';
     while (!signal?.aborted) {
       const snapshot = runner.snapshot();

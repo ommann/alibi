@@ -39,6 +39,11 @@ export class Home {
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
 
+  unavailable(name: string): boolean {
+    const detection = this.validation.state()?.steps.find(step => step.name === name)?.detection;
+    return detection?.applicable === false && !detection.error;
+  }
+
   passed(run: Run): number {
     return run.results.filter(result => result.status === 'passed').length;
   }

@@ -76,6 +76,16 @@ h2 {
   list-style: none;
 }
 
+.analysis-row.analysis-unavailable,
+.catalog-row.analysis-unavailable {
+  background: #211f1d;
+}
+
+.analysis-unavailable .analysis-name,
+.catalog-row.analysis-unavailable > span {
+  color: var(--muted);
+}
+
 .analysis-row::-webkit-details-marker {
   display: none;
 }
