@@ -2,6 +2,16 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { resolve } from 'node:path';
 import { project } from './validation-projects';
+function assistantRunResult(run: import('../shared/contracts').Run) {
+  return {
+    content: run.results.map(result => ({
+      type: 'text' as const,
+      text: `${result.name}: ${result.status}\n${result.output}${result.reason ? `${result.reason}\n` : ''}`,
+    })),
+    ...(run.cancelled || run.results.some(result => result.status === 'failed') ? { isError: true } : {}),
+  };
+}
+
 export const settingSchema = z.union([z.literal(1), z.literal(2)]);
 
 export function createMcpServer(management = false, cwd?: string) {
@@ -32,22 +42,35 @@ export function createMcpServer(management = false, cwd?: string) {
       }
     });
 
-    server.registerTool('eslint_run', {
-      description: 'Run selected configured ESLint analyses regardless of their normal policies. Returns CLI-style diagnostics and records results in the UI without changing the saved plan. Refresh configuration first after external edits. Fails while validation is busy.',
+    server.registerTool('validation_run', {
+      description: 'Run full project validation, one analysis, or an existing analysis group as the assistant, regardless of policies. Omit analysis and group for full validation. Records results without changing configuration. Fails while validation is busy.',
       inputSchema: {
         cwd: z.string().trim().min(1).describe('Project directory.'),
-        analyses: z.array(z.string().min(1)).min(1).describe('Analysis names, for example eslint:stage2.'),
+        analysis: z.string().trim().min(1).optional().describe('One configured analysis name.'),
+        group: z.number().int().min(1).optional().describe('Existing analysis group number, starting at 1. Cannot be combined with analysis.'),
       },
-    }, async ({ cwd, analyses }) => {
+    }, async ({ cwd, analysis, group }) => {
       try {
-        const run = await (await project(cwd)).runESLint(analyses);
-        return {
-          content: run.results.map(result => ({
-            type: 'text' as const,
-            text: `${result.name}: ${result.status}\n${result.output}${result.reason ? `${result.reason}\n` : ''}`,
-          })),
-          ...(run.cancelled || run.results.some(result => result.status === 'failed') ? { isError: true } : {}),
-        };
+        return assistantRunResult(await (await project(cwd)).runValidation({ analysis, group }));
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
+    server.registerTool('eslint_run', {
+      description: 'Run one ESLint rule or an existing named ESLint rule group as the assistant. A single rule runs at error severity without saving configuration. Records diagnostics in the UI. Fails while validation is busy.',
+      inputSchema: {
+        cwd: z.string().trim().min(1).describe('Project directory.'),
+        rule: z.string().trim().min(1).optional().describe('One ESLint rule, for example no-debugger or solid/reactivity.'),
+        group: z.string().trim().min(1).optional().describe('Existing ESLint group name, for example stage2 or eslint:stage2. Select either rule or group.'),
+      },
+    }, async ({ cwd, rule, group }) => {
+      try {
+        if ((rule === undefined) === (group === undefined)) throw new Error('Select one ESLint rule or group.');
+        const runner = await project(cwd);
+        const run = rule !== undefined ? await runner.runESLintRule(rule)
+          : await runner.runESLint([group!.startsWith('eslint:') || group === 'eslint' ? group! : `eslint:${group}`]);
+        return assistantRunResult(run);
       } catch (error) {
         return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
       }

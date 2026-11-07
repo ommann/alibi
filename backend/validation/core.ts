@@ -247,8 +247,8 @@ export class Validation {
     return { cwd: this.cwd, scripts: pkg?.scripts ?? {} };
   }
 
-  private async detectWith(context: Context, names?: string[]) {
-    for (const step of this.steps.filter(step => !names || names.includes(step.name))) {
+  private async detectWith(context: Context, names?: string[], steps = this.steps) {
+    for (const step of steps.filter(step => !names || names.includes(step.name))) {
       context.signal?.throwIfAborted();
 
       try {
@@ -285,6 +285,33 @@ export class Validation {
     return this.execute(caller);
   }
 
+  async runValidation(selection: { analysis?: string; group?: number } = {}): Promise<Run> {
+    if (selection.analysis !== undefined && selection.group !== undefined) throw new Error('Select an analysis or a group, not both.');
+    if (selection.group !== undefined) {
+      const group = this.plan.groups[selection.group - 1];
+      if (!group) throw new Error(`Unknown analysis group: ${selection.group}`);
+      return this.execute('assistant', undefined, undefined, group);
+    }
+    if (selection.analysis !== undefined) {
+      if (!this.steps.some(step => step.name === selection.analysis)) throw new Error(`Unknown analysis: ${selection.analysis}`);
+      return this.execute('assistant', undefined, undefined, [selection.analysis]);
+    }
+    return this.execute('assistant', undefined, undefined, this.plan.groups.flat());
+  }
+
+  async runESLintRule(rule: string): Promise<Run> {
+    const definition = this.definitions.find(step => step.name === 'eslint');
+    if (!definition) throw new Error('ESLint is unavailable.');
+    const name = `eslint:rule:${rule}`;
+    const instanceConfig = { rules: { [rule]: 'error' } };
+    const step: Step = {
+      name,
+      detect: context => definition.detect({ ...context, instanceConfig }),
+      run: context => definition.run({ ...context, instanceConfig }),
+    };
+    return this.execute('assistant', undefined, undefined, [name], [step]);
+  }
+
   async runESLint(names: string[]): Promise<Run> {
     if (!names.length) { throw new Error('Select at least one ESLint analysis.'); }
     const available = new Set(this.steps.map(step => step.name));
@@ -296,7 +323,7 @@ export class Validation {
     return this.execute('assistant', undefined, undefined, [...new Set(names)]);
   }
 
-  private async execute(caller: Run['caller'], agentReady?: (run: Run) => void, onStep?: (name: string) => void, names?: string[]): Promise<Run> {
+  private async execute(caller: Run['caller'], agentReady?: (run: Run) => void, onStep?: (name: string) => void, names?: string[], temporarySteps?: Step[]): Promise<Run> {
     if (this.busy) { throw new Error("Validation is busy"); }
     this.busy = true;
     const controller = new AbortController();
@@ -307,9 +334,14 @@ export class Validation {
 
     const plan = structuredClone(this.plan);
     if (names) {
-      plan.groups = [names];
+      const grouped = new Set(plan.groups.flat());
+      plan.groups = [
+        ...plan.groups.map(group => group.filter(name => names.includes(name))).filter(group => group.length),
+        ...names.filter(name => !grouped.has(name)).map(name => [name]),
+      ];
       plan.policies = Object.fromEntries(names.map(name => [name, 'user' as const]));
     }
+    const steps = temporarySteps ?? this.steps;
     const run: Run = {
       id: crypto.randomUUID(), caller, startedAt: now(), plan,
       results: plan.groups.flat().map(name => ({ name, policy: plan.policies[name]!, status: "pending", output: "" })),
@@ -318,7 +350,7 @@ export class Validation {
     try {
       const context = { ...await this.context(), signal };
       signal.throwIfAborted();
-      await this.detectWith(context, names);
+      await this.detectWith(context, names, steps);
       signal.throwIfAborted();
 
       for (const result of run.results) {
@@ -365,7 +397,7 @@ export class Validation {
 
           try {
             if (detection.error) { throw new Error(detection.error); }
-            const step = this.steps.find(step => step.name === name)!;
+            const step = steps.find(step => step.name === name)!;
             onStep?.(name);
             result.exitCode = await step.run({ ...context, useNix: plan.options?.useNix, config: plan.configs?.[name] ?? {}, output: (_stream, text) => { result.output += text; } });
             result.status = signal.aborted ? "cancelled" : result.exitCode === 0 ? "passed" : "failed";
