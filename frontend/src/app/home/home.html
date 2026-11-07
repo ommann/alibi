@@ -66,11 +66,11 @@
           <button class="run-row" type="button" [attr.aria-pressed]="selectedRun()?.id === run.id" (click)="selectedId.set(run.id)">
             <time [attr.datetime]="run.startedAt">{{ run.startedAt | date:'MMM d HH:mm:ss' }}</time>
             <span [attr.data-audience]="run.caller">{{ run.caller }}</span>
-            <span class="row-end" [attr.aria-label]="passed(run) + ' passed out of ' + total(run)">{{ passed(run) }}/{{ total(run) }}</span>
-            <span class="timing">{{ duration(run.startedAt, run.finishedAt) }}</span>
             @if (!run.finishedAt || run.cancelled) {
               <span>{{ run.cancelled ? 'cancelled' : 'running' }}</span>
             }
+            <span class="row-end" [attr.aria-label]="passed(run) + ' passed out of ' + total(run)">{{ passed(run) }}/{{ total(run) }}</span>
+            <span class="timing">{{ duration(run.startedAt, run.finishedAt) }}</span>
           </button>
         } @empty { <p class="muted">No runs yet.</p> }
       </div>
