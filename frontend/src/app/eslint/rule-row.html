@@ -7,5 +7,5 @@
       <option [value]="target.key">{{ target.name }}</option>
     }
   }
-  @if (group() !== null) { <option value=":unassigned">Unassigned</option> }
+  @if (group() !== null) { <option value=":unassigned">{{ unassignedLabel() }}</option> }
 </select>

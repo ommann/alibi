@@ -13,6 +13,7 @@ export class RuleRow {
   readonly group = input.required<string | null>();
   readonly targets = input.required<{ key: string | null; name: string; configFile: string | null }[]>();
   readonly disabled = input(false);
+  readonly unassignedLabel = input('Unassigned');
   readonly move = output<string | null>();
 
   selectMove(event: Event): void {

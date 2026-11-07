@@ -62,6 +62,72 @@ export function setESLintRule(original: Plan, key: string, id: string, override:
   return plan;
 }
 
+export function orderedESLintBlocks(config: ESLintStepConfig): ESLintConfig[] {
+  return eslintConfigs(config).flatMap(block => {
+    const { rules: configuredRules, settings, ...scope } = block;
+    const result: ESLintConfig[] = [];
+    if (settings !== undefined) result.push({ ...scope, settings });
+    for (const [id, value] of Object.entries(rules(block))) result.push({ ...scope, rules: { [id]: value } });
+    return result.length ? result : [block];
+  });
+}
+
+export function moveESLintBlock(original: Plan, from: string, index: number, to: string | null, position: number): Plan {
+  const plan = structuredClone(original);
+  const source = orderedESLintBlocks(plan.eslint![from]!);
+  const [block] = source.splice(index, 1);
+  if (!block) throw new Error('ESLint block no longer exists.');
+  plan.eslint![from] = source;
+  if (to !== null) {
+    const destination = from === to ? source : orderedESLintBlocks(plan.eslint![to]!);
+    destination.splice(position, 0, block);
+    plan.eslint![to] = destination;
+  }
+  return plan;
+}
+
+export function settingsBlocks(config: ESLintStepConfig): { index: number; value: ESLintConfig }[] {
+  if (isESLintFileConfig(config)) return [];
+  return eslintConfigs(config).flatMap((value, index) => Object.hasOwn(value, 'settings') ? [{ index, value }] : []);
+}
+
+export function editSettingsBlock(original: Plan, key: string, index: number | null, value: unknown): Plan {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Use a configuration object containing settings and optional files/ignores.');
+  const block = value as ESLintConfig;
+  if (!block.settings || typeof block.settings !== 'object' || Array.isArray(block.settings)) throw new Error('settings must be an object.');
+  if (Object.keys(block).some(key => !['settings', 'files', 'ignores', 'name'].includes(key))) throw new Error('Settings blocks support settings, files, ignores, and name only.');
+  const plan = structuredClone(original);
+  const config = plan.eslint?.[key];
+  if (!config) throw new Error('ESLint step no longer exists.');
+  const blocks = [...eslintConfigs(config)];
+  if (index === null) blocks.push(block);
+  else {
+    if (!blocks[index] || !Object.hasOwn(blocks[index]!, 'settings')) throw new Error('Settings block no longer exists.');
+    blocks[index] = block;
+  }
+  plan.eslint![key] = blocks;
+  return plan;
+}
+
+export function moveSettingsBlock(original: Plan, from: string, index: number, to: string | null, position?: number): Plan {
+  const plan = structuredClone(original);
+  const source = plan.eslint?.[from];
+  if (!source) throw new Error('Source ESLint step no longer exists.');
+  const blocks = [...eslintConfigs(source)];
+  const block = blocks[index];
+  if (!block || !Object.hasOwn(block, 'settings')) throw new Error('Settings block no longer exists.');
+  blocks.splice(index, 1);
+  plan.eslint![from] = blocks;
+  if (to !== null) {
+    const target = plan.eslint?.[to];
+    if (!target) throw new Error('Destination ESLint step no longer exists.');
+    const destination = [...eslintConfigs(target)];
+    destination.splice(position ?? destination.length, 0, block);
+    plan.eslint![to] = destination;
+  }
+  return plan;
+}
+
 export function addESLintStep(original: Plan, name: string, configFile?: string): Plan {
   const key = name.trim();
   if (!key || key.includes(':')) { throw new Error('Choose a non-empty step name without a colon.'); }
