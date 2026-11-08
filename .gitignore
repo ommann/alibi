@@ -16,3 +16,4 @@ coverage/
 result
 
 .pi/
+.playwright-mcp/
