@@ -4,6 +4,8 @@ Alibi is a personal quality assurance tool for agentic coding, developed alongsi
 
 The inspiration came from `chronic` in [moreutils](https://joeyh.name/code/moreutils/). Running `chronic npm test` stays quiet when the command succeeds and shows its output when it fails. Alibi applies the same idea to validation for coding agents: passing tests and lint produce no output for the development agent. Only failures need its attention, keeping the happy path as cheap as possible in LLM context.
 
+The name follows from that economy: when successful checks cost almost nothing in agent context, the agent can afford to run them frequently. Its alibi is a consistent, user-chosen set of checks, not whichever commands it happened to remember or considered sufficient.
+
 ## Three roles
 
 The **development agent** is doing the coding. It gets just one tool, `validate`, with no arguments, so it cannot choose which checks to run or weaken the quality gates through that tool. It runs what the user has decided matters now and receives output only when something needs its attention.

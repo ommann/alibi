@@ -72,22 +72,26 @@ export function checkPlan(value: unknown, definitions: Step[]): Plan {
     throw new Error("Groups must be non-empty arrays");
   }
 
-  const units = definitions.filter(step => step.expandedFrom === 'npm:test');
-  if (units.length) {
+  // Migrate workspace analyses created by older versions back to their dispatcher.
+  const legacy = (name: string) => name.startsWith('npm:test:');
+  if (definitions.some(step => step.name === 'npm:test') &&
+    [...plan.groups.flat(), ...Object.keys(plan.policies), ...(plan.removed ?? [])].some(legacy)) {
     plan = structuredClone(plan);
-    const names = units.map(step => step.name);
-    plan.groups = plan.groups.flatMap(group => {
-      const rest = group.filter(name => name !== 'npm:test' && !names.includes(name));
-      const selected = group.includes('npm:test') ? names : group.filter(name => names.includes(name));
-      return [...(rest.length ? [rest] : []), ...selected.map(name => [name])];
-    });
-    for (const name of names) {
-      plan.policies[name] ??= plan.policies['npm:test'] ?? 'agent';
+    const selected = plan.groups.flat().filter(legacy);
+    plan.policies['npm:test'] ??= plan.policies[selected[0] ?? ''] ?? 'agent';
+    let seen = false;
+    plan.groups = plan.groups.map(group => group.flatMap(name => {
+      if (name !== 'npm:test' && !legacy(name)) return [name];
+      if (seen) return [];
+      seen = true;
+      return ['npm:test'];
+    })).filter(group => group.length);
+    if (plan.removed) {
+      const removed = plan.removed.some(legacy);
+      plan.removed = plan.removed.filter(name => !legacy(name));
+      if (removed && !seen && !plan.removed.includes('npm:test')) plan.removed.push('npm:test');
     }
-    delete plan.policies['npm:test'];
-    if (plan.removed?.includes('npm:test')) {
-      plan.removed = [...plan.removed.filter(name => name !== 'npm:test'), ...names];
-    }
+    for (const name of Object.keys(plan.policies).filter(legacy)) delete plan.policies[name];
   }
   const steps = configuredSteps(plan, definitions);
   if (new Set(steps.map(step => step.name)).size !== steps.length) { throw new Error("Duplicate analysis step name"); }
@@ -167,6 +171,7 @@ export function agentReport(run: Run): AgentReport {
 export class Validation {
   readonly cwd: string;
   private readonly definitions: Step[];
+  private workspaceSteps: Step[] = [];
   get steps(): Step[] { return configuredSteps(this.plan, this.definitions); }
   plan: Plan;
   detections: Record<string, Detection> = {};
@@ -187,18 +192,16 @@ export class Validation {
     cwd = resolve(cwd);
     if (!(await stat(cwd)).isDirectory()) { throw new Error(`Not a directory: ${cwd}`); }
 
-    let steps = options.steps ?? await loadSteps();
-    if (!options.steps) {
-      const units = await workspaceTests(cwd);
-      if (units.length) steps = [...steps.filter(step => step.name !== 'npm:test'), ...units];
-    }
+    const steps = options.steps ?? await loadSteps();
     const configFile = options.persist === false ? undefined : join(cwd, ".alibi.json");
     let plan = checkPlan({ groups: [], policies: {} }, steps);
     if (configFile && await Bun.file(configFile).exists()) {
       plan = checkPlan(await Bun.file(configFile).json(), steps);
     }
 
-    return new Validation(cwd, steps, plan, configFile);
+    const runner = new Validation(cwd, steps, plan, configFile);
+    if (!options.steps) runner.workspaceSteps = await workspaceTests(cwd);
+    return runner;
   }
 
   snapshot(): Snapshot {
@@ -341,7 +344,16 @@ export class Validation {
       ];
       plan.policies = Object.fromEntries(names.map(name => [name, 'user' as const]));
     }
-    const steps = temporarySteps ?? this.steps;
+    const steps = temporarySteps ?? this.steps.flatMap(step => step.name === 'npm:test' && this.workspaceSteps.length ? this.workspaceSteps : [step]);
+    if (this.workspaceSteps.length) {
+      plan.groups = plan.groups.flatMap(group => {
+        if (!group.includes('npm:test')) return [group];
+        const rest = group.filter(name => name !== 'npm:test');
+        return [...(rest.length ? [rest] : []), ...this.workspaceSteps.map(step => [step.name])];
+      });
+      for (const step of this.workspaceSteps) plan.policies[step.name] = plan.policies['npm:test']!;
+      delete plan.policies['npm:test'];
+    }
     const run: Run = {
       id: crypto.randomUUID(), caller, startedAt: now(), plan,
       results: plan.groups.flat().map(name => ({ name, policy: plan.policies[name]!, status: "pending", output: "" })),
