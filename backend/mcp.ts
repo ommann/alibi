@@ -1,6 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { resolve } from 'node:path';
 import { project } from './validation-projects';
 function assistantRunResult(run: import('../shared/contracts').Run) {
   return {
@@ -20,14 +19,6 @@ export function createMcpServer(management = false, cwd?: string) {
   });
 
   if (management) {
-    server.registerTool('get_alibi_config_path', {
-      description: 'Get the absolute Alibi configuration file path for a project. The file may not exist yet.',
-      inputSchema: { cwd: z.string().trim().min(1).describe('Project directory.') },
-      annotations: { readOnlyHint: true },
-    }, async ({ cwd }) => ({
-      content: [{ type: 'text' as const, text: resolve(cwd, '.alibi.json') }],
-    }));
-
     server.registerTool('refresh_alibi_config', {
       description: 'Reload a project’s .alibi.json into Alibi after editing it externally. Updates the UI without writing the file. Invalid configuration preserves the current plan. Fails while validation is busy.',
       inputSchema: { cwd: z.string().trim().min(1).describe('Project directory.') },

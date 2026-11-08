@@ -39,18 +39,14 @@ test('developer MCP exposes only validation and returns only errors', async () =
   }
 });
 
-test('management MCP returns configuration paths for multiple projects', async () => {
+test('management MCP exposes only configuration refresh and execution tools', async () => {
   const server = createMcpServer(true);
   const client = new Client({ name: 'test', version: '1.0.0' });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   try {
     await server.connect(serverTransport);
     await client.connect(clientTransport);
-    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['get_alibi_config_path', 'refresh_alibi_config', 'validation_run', 'eslint_run']);
-    for (const cwd of ['/home/user/project-one', '/home/user/project-two']) {
-      const result = await client.callTool({ name: 'get_alibi_config_path', arguments: { cwd } });
-      expect(result.content).toEqual([{ type: 'text', text: `${cwd}/.alibi.json` }]);
-    }
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['refresh_alibi_config', 'validation_run', 'eslint_run']);
   } finally {
     await client.close();
     await server.close();
