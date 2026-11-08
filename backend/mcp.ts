@@ -12,8 +12,6 @@ function assistantRunResult(run: import('../shared/contracts').Run) {
   };
 }
 
-export const settingSchema = z.union([z.literal(1), z.literal(2)]);
-
 export function createMcpServer(management = false, cwd?: string) {
   if (!management && !cwd) throw new Error('Developer MCP requires a project directory.');
   const server = new McpServer({

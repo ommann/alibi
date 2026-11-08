@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { createMcpServer, settingSchema } from './mcp';
-import { SettingStore } from './store';
+import { createMcpServer } from './mcp';
 import { config } from './config';
 import { validationHttp } from './validation-http';
 import { rpcHandler } from './rpc';
@@ -11,8 +10,6 @@ import { rpcHandler } from './rpc';
 const port = config.PORT;
 
 const origin = `http://localhost:${port}`;
-
-const store = new SettingStore();
 
 type Session = {
   transport: StreamableHTTPTransport;
@@ -69,13 +66,6 @@ app.on(['GET', 'POST', 'DELETE'], '*', async (c, next) => {
 });
 
 app.get('/api/health', (c) => c.json({ service: 'alibi' }));
-app.get('/api/setting', (c) => c.json({ number: store.get() }));
-
-app.post('/api/setting', async (c) => {
-  const { number } = z.object({ number: settingSchema }).parse(await c.req.json());
-  return c.json({ number: store.set(number) });
-});
-
 app.all('/rpc/*', async (c) => {
   const url = new URL(c.req.url);
   const requestOrigin = c.req.header('Origin');
