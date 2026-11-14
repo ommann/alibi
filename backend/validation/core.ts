@@ -377,15 +377,21 @@ export class Validation {
       this.runs.push(run);
 
       const notifyAgent = () => {
-        if (caller === "agent" && !signal.aborted && run.results.every(result => result.policy !== "agent"
-          || !["pending", "running"].includes(result.status))) {
-          run.agentFinishedAt ??= now();
+        if (caller === "agent" && !signal.aborted && !run.agentFinishedAt
+          && (run.results.some(result => result.policy === "agent" && result.status === "failed")
+            || run.results.every(result => result.policy !== "agent" || !["pending", "running"].includes(result.status)))) {
+          run.agentFinishedAt = now();
           agentReady?.(run);
+          // Once the agent response is settled, remaining work is UI-only.
+          for (const result of run.results) {
+            if (result.policy === "agent" && ["pending", "running"].includes(result.status)) {
+              result.policy = "user";
+            }
+          }
         }
       };
       notifyAgent();
 
-      let blocked = false;
       for (const group of plan.groups) {
         const executions = group.map(async name => {
           const result = run.results.find(result => result.name === name)!;
@@ -395,12 +401,6 @@ export class Validation {
 
           if (signal.aborted) {
             result.status = "cancelled";
-            return;
-          }
-
-          if (blocked) {
-            result.status = "skipped";
-            result.reason = "Earlier agent-visible failure";
             return;
           }
 
@@ -418,25 +418,14 @@ export class Validation {
             if (!signal.aborted) { result.output += `${String(error)}\n`; }
             result.status = signal.aborted ? "cancelled" : "failed";
             result.exitCode = signal.aborted ? undefined : 1;
-          } finally { result.finishedAt = now(); }
+          } finally {
+            result.finishedAt = now();
+            notifyAgent();
+          }
         });
 
-        const agentCompletion = Promise.all(executions.filter((_execution, index) => plan.policies[group[index]!] === "agent"))
-          .then(() => {
-            // Settle later agent checks as soon as this section's agent results are known.
-            // User-facing checks still finish before the next section starts.
-            if (caller === "agent" && run.results.some(result => result.policy === "agent" && result.status === "failed")) {
-              blocked = true;
-              for (const result of run.results) {
-                if (result.policy === "agent" && result.status === "pending") {
-                  result.status = "skipped";
-                  result.reason = "Earlier agent-visible failure";
-                }
-              }
-            }
-            notifyAgent();
-          });
-        await Promise.all([...executions, agentCompletion]);
+        // Reporting can finish early; all enabled checks still run for the UI.
+        await Promise.all(executions);
       }
     } catch (error) {
       for (const result of run.results) {

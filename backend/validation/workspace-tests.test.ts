@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { checkPlan, Validation } from './core.ts';
 import { workspaceTests } from './workspace-tests.ts';
 
-test('workspace tests become sequential units and stop at the first agent failure', async () => {
+test('workspace tests report the first agent failure and continue remaining units for the UI', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'alibi-workspaces-'));
   try {
     await Bun.write(join(cwd, 'package.json'), JSON.stringify({ private: true, workspaces: ['packages/*'], scripts: { test: 'npm run test --workspaces --if-present' } }));
@@ -36,7 +36,7 @@ test('workspace tests become sequential units and stop at the first agent failur
     expect(report.failures[0]!.output).toContain('456');
     const results = runner.runs.at(-1)!.results;
     expect(results.find(result => result.name === names[0])!.status).toBe('passed');
-    expect(results.find(result => result.name === names[2])!.status).toBe('skipped');
+    expect(results.find(result => result.name === names[2])!.status).toBe('passed');
     expect(JSON.stringify(report)).not.toContain('789');
     expect(results.some(result => result.name === 'npm:test')).toBe(false);
     expect((await Validation.create(cwd)).plan.groups[0]).toEqual(['npm:test']);
