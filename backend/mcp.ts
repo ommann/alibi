@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { project } from './validation-projects';
+import { ruleSettings, setESLintRule } from '../shared/eslint-plan';
 function assistantRunResult(run: import('../shared/contracts').Run) {
   return {
     content: run.results.map(result => ({
@@ -19,6 +20,101 @@ export function createMcpServer(management = false, cwd?: string) {
   });
 
   if (management) {
+    const groupName = z.string().trim().min(1).regex(/^[^:]+$/, 'Use a group name without the eslint: prefix.');
+    server.registerTool('eslint_group_get', {
+      description: 'Read a named ESLint group, including its full configuration, policy, and analysis group position. Omit name to list all configured ESLint groups. Does not change configuration.',
+      inputSchema: { cwd: z.string().trim().min(1), name: groupName.optional() },
+    }, async ({ cwd, name }) => {
+      try {
+        const { plan } = await project(cwd);
+        if (name !== undefined && !Object.hasOwn(plan.eslint ?? {}, name)) throw new Error(`Unknown ESLint group: ${name}`);
+        const groups = Object.entries(plan.eslint ?? {}).filter(([key]) => name === undefined || key === name).map(([key, configuration]) => {
+          const id = key === 'default' ? 'eslint' : `eslint:${key}`;
+          const position = plan.groups.findIndex(group => group.includes(id));
+          return { name: key, configuration, policy: plan.policies[id], group: position < 0 ? null : position + 1, removed: plan.removed?.includes(id) ?? false };
+        });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(groups, null, 2) }] };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
+    server.registerTool('eslint_rule_update', {
+      description: 'Overwrite an existing rule severity/options in one inline ESLint group. Leaves other rules and file scopes unchanged; does not merge options. For multiple scoped overrides, specify the zero-based override index among occurrences of this rule. Saves .alibi.json and updates the UI. File-backed groups are read-only. Fails while validation is busy.',
+      inputSchema: {
+        cwd: z.string().trim().min(1),
+        group: groupName,
+        rule: z.string().trim().min(1),
+        value: z.union([
+          z.enum(['off', 'warn', 'error']), z.number().int().min(0).max(2),
+          z.tuple([z.union([z.enum(['off', 'warn', 'error']), z.number().int().min(0).max(2)])]).rest(z.json()),
+        ]),
+        override: z.number().int().min(0).optional(),
+      },
+    }, async ({ cwd, group, rule, value, override }) => {
+      try {
+        const runner = await project(cwd);
+        const config = runner.plan.eslint?.[group];
+        if (!config) throw new Error(`Unknown ESLint group: ${group}`);
+        const settings = ruleSettings(config, rule);
+        if (!settings.length) throw new Error(`Rule is not configured in ${group}: ${rule}`);
+        if (settings.length > 1 && override === undefined) throw new Error('Rule has multiple overrides; specify an override index.');
+        await runner.configure(setESLintRule(runner.plan, group, rule, override ?? 0, value));
+        return { content: [{ type: 'text' as const, text: `Updated ${rule} in ESLint group: ${group}` }] };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
+    server.registerTool('eslint_group_create', {
+      description: 'Create a named ESLint rule group, save .alibi.json, and update the UI. Appends a new analysis group with user-only policy by default. Fails for existing names or while validation is busy.',
+      inputSchema: {
+        cwd: z.string().trim().min(1),
+        name: groupName,
+        rules: z.record(z.string(), z.union([
+          z.enum(['off', 'warn', 'error']), z.number().int().min(0).max(2),
+          z.tuple([z.union([z.enum(['off', 'warn', 'error']), z.number().int().min(0).max(2)])]).rest(z.json()),
+        ])).default({}),
+        policy: z.enum(['user', 'agent', 'off']).default('user'),
+      },
+    }, async ({ cwd, name, rules, policy }) => {
+      try {
+        const runner = await project(cwd);
+        const plan = structuredClone(runner.plan);
+        if (Object.hasOwn(plan.eslint ?? {}, name)) throw new Error(`ESLint group already exists: ${name}`);
+        const id = `eslint:${name}`;
+        plan.eslint = { ...plan.eslint, [name]: { rules } };
+        plan.groups.push([id]);
+        plan.policies[id] = policy;
+        plan.removed = plan.removed?.filter(item => item !== id);
+        await runner.configure(plan);
+        return { content: [{ type: 'text' as const, text: `Created ESLint group: ${name}` }] };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
+    server.registerTool('eslint_group_delete', {
+      description: 'Delete a named ESLint group and its ordering, policy, and configuration references. Saves .alibi.json and updates the UI. Does not alter historical runs. Fails for missing groups or while validation is busy.',
+      inputSchema: { cwd: z.string().trim().min(1), name: groupName },
+    }, async ({ cwd, name }) => {
+      try {
+        const runner = await project(cwd);
+        const plan = structuredClone(runner.plan);
+        if (!Object.hasOwn(plan.eslint ?? {}, name)) throw new Error(`Unknown ESLint group: ${name}`);
+        const id = `eslint:${name}`;
+        delete plan.eslint![name];
+        plan.groups = plan.groups.map(group => group.filter(item => item !== id)).filter(group => group.length);
+        delete plan.policies[id];
+        delete plan.configs?.[id];
+        plan.removed = plan.removed?.filter(item => item !== id);
+        await runner.configure(plan);
+        return { content: [{ type: 'text' as const, text: `Deleted ESLint group: ${name}` }] };
+      } catch (error) {
+        return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+      }
+    });
+
     server.registerTool('refresh_alibi_config', {
       description: 'Reload a project’s .alibi.json into Alibi after editing it externally. Updates the UI without writing the file. Invalid configuration preserves the current plan. Fails while validation is busy.',
       inputSchema: { cwd: z.string().trim().min(1).describe('Project directory.') },
