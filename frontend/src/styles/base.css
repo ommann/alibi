@@ -50,6 +50,11 @@ button, .button, input, select, textarea {
   padding: var(--space-control) var(--space-inline);
 }
 
+input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
 button,
 .button {
   background: var(--button-background);

@@ -2,8 +2,42 @@
   <app-view-navigation />
   <h2>Nibble budget</h2>
   <div class="toolbar">
-    <input type="number" min="0" step="1" aria-label="Nibble budget" placeholder="Count…" [value]="budget()" (input)="setBudget($event)">
-    <label><app-checkbox [(checked)]="dirtyFilesFirst" /> Dirty files first</label>
-    <label><app-checkbox [(checked)]="wholeFilesFirst" /> Whole files first</label>
+    <input type="number" min="0" step="1" aria-label="Nibble budget" placeholder="Count…" [value]="budget()" [disabled]="validation.editingDisabled()" (change)="setBudget($event)">
+    <label><app-checkbox [checked]="dirtyFilesFirst()" (checkedChange)="save({ dirtyFilesFirst: $event })" [disabled]="validation.editingDisabled()" /> Dirty files only</label>
+    <label><app-checkbox [checked]="wholeFilesFirst()" (checkedChange)="save({ wholeFilesFirst: $event })" [disabled]="validation.editingDisabled()" /> Whole files first</label>
+    <label><app-checkbox [checked]="randomSelection()" (checkedChange)="save({ randomSelection: $event })" [disabled]="validation.editingDisabled()" /> Random error order</label>
   </div>
+
+  @if (validation.actionError(); as error) { <p class="error" role="alert">{{ error }}</p> }
+  <h2>ESLint rules</h2>
+  <div class="toolbar">
+    <input type="search" aria-label="Filter rules" placeholder="Filter rules…" [value]="search()" (input)="setSearch($event)">
+  </div>
+  @if (validation.catalogError(); as error) {
+    <p class="error" role="alert">{{ error }} <button type="button" (click)="validation.loadESLintRules()">Retry</button></p>
+  }
+  <details class="rule-group" open>
+    <summary class="group-heading">Rules <span class="muted">{{ selectedRules().length }}</span></summary>
+  <div class="rule-list" role="group" aria-label="ESLint rule priority" cdkDropList [cdkDropListDisabled]="validation.editingDisabled()" (cdkDropListDropped)="drop($event)">
+    @for (rule of rules(); track rule.id) {
+      <div class="rule-row" cdkDrag [cdkDragDisabled]="validation.editingDisabled()" [cdkDragData]="rule.id">
+        <span cdkDragHandle class="handle" aria-label="Drag rule">⠿</span>
+        <span class="rule-name" [title]="rule.description || ''">{{ rule.id }}</span>
+        <button type="button" [disabled]="validation.editingDisabled()" (click)="removeRule(rule.id)">Remove</button>
+      </div>
+    }
+  </div>
+  </details>
+
+  <details class="rule-group" [open]="search().trim().length > 0">
+    <summary class="group-heading">Unassigned <span class="muted">{{ availableRules().length }}</span></summary>
+    <div class="available-list">
+      @for (rule of availableRules(); track rule.id) {
+        <div class="rule-row">
+          <span class="rule-name" [title]="rule.description || ''">{{ rule.id }}</span>
+          <button type="button" [disabled]="validation.editingDisabled()" (click)="addRule(rule.id)">Add</button>
+        </div>
+      }
+    </div>
+  </details>
 </main>

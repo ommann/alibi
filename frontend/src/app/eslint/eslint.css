@@ -45,11 +45,6 @@ input[type="search"] {
   max-width: 100%;
 }
 
-input::placeholder {
-  color: var(--text-secondary);
-  opacity: 1;
-}
-
 .editor {
   padding: var(--space-control) var(--space-inline);
   color: var(--select-active-text);

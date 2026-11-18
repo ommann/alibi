@@ -7,7 +7,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createMcpServer } from './mcp';
 import { project } from './validation-projects';
 
-test('developer MCP exposes only validation and returns only errors', async () => {
+test('developer MCP exposes nibble and validation and returns only errors', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'alibi-mcp-'));
   const server = createMcpServer(false, cwd);
   const client = new Client({ name: 'test', version: '1.0.0' });
@@ -16,7 +16,7 @@ test('developer MCP exposes only validation and returns only errors', async () =
     await server.connect(serverTransport);
     await client.connect(clientTransport);
     const tools = (await client.listTools()).tools;
-    expect(tools.map(tool => tool.name)).toEqual(['validate']);
+    expect(tools.map(tool => tool.name)).toEqual(['nibble', 'validate']);
     expect(tools[0]!.inputSchema.properties).toEqual({});
     const config = await Bun.file('.alibi.json').json();
     config.policies = Object.fromEntries(Object.keys(config.policies).map(name => [name, name === 'npm:build' ? 'agent' : 'off']));
@@ -46,7 +46,7 @@ test('management MCP exposes only configuration refresh and execution tools', as
   try {
     await server.connect(serverTransport);
     await client.connect(clientTransport);
-    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['refresh_alibi_config', 'validation_run', 'eslint_run']);
+    expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(['eslint_group_get', 'eslint_rule_update', 'eslint_group_create', 'eslint_group_delete', 'refresh_alibi_config', 'validation_run', 'eslint_run']);
   } finally {
     await client.close();
     await server.close();

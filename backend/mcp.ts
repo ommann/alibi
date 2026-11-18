@@ -164,6 +164,23 @@ export function createMcpServer(management = false, cwd?: string) {
     return server;
   }
 
+  server.registerTool('nibble', {
+    description: 'Return ESLint errors selected by the user’s Nibble settings. Each returned error consumes one unit of the persistent budget. Unset or exhausted budgets return no output.',
+    inputSchema: {},
+  }, async () => {
+    try {
+      const errors = await (await project(cwd!)).nibble();
+      const content = errors.map(error => ({ type: 'text' as const, text: `${error.file}:${error.line}:${error.column} ${error.rule}: ${error.message}` }));
+      const checks = [...new Set(errors.flatMap(error => error.checkCommand ? [error.checkCommand] : []))];
+      if (checks.length) content.push({ type: 'text', text: `Verification commands:\n${checks.join('\n')}` });
+      const commands = [...new Set(errors.flatMap(error => error.fixCommand ? [error.fixCommand] : []))];
+      if (commands.length) content.push({ type: 'text', text: `Automatic fixes:\n${commands.join('\n')}` });
+      return { content };
+    } catch (error) {
+      return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
+    }
+  });
+
   server.registerTool('validate', {
     description: 'Run agent-policy validation for a project. Returns only failures; success produces no output.',
     inputSchema: {},

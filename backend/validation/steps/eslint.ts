@@ -8,7 +8,7 @@ import { isESLintFileConfig, type ESLintStepConfig } from '../../../shared/contr
 import { sourceFiles } from '../source-files.ts';
 import type { Context, Step } from '../step.ts';
 
-async function engine(context: Context) {
+export async function engine(context: Context) {
   const config = context.instanceConfig as ESLintStepConfig | undefined;
   if (config && isESLintFileConfig(config)) {
     const path = resolve(context.cwd, config.configFile);

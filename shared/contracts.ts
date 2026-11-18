@@ -33,6 +33,7 @@ export type ESLintRule = {
 };
 
 export type Plan = {
+  nibble?: import('./nibble').NibbleConfig;
   groups: string[][];
   policies: Record<string, Policy>;
   removed?: string[];

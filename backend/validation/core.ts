@@ -3,6 +3,8 @@ import { stat, rename } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import type { Context, Step } from "./step.ts";
 import { workspaceTests } from './workspace-tests.ts';
+import { nibbleSchema } from '../../shared/nibble.ts';
+import { nibbleErrors } from './nibble.ts';
 
 import type { Plan, Detection, Run, Snapshot } from "../../shared/contracts.ts";
 
@@ -158,6 +160,7 @@ export function checkPlan(value: unknown, definitions: Step[]): Plan {
     removed: [...removed],
     options: { ...plan.options, useNix: plan.options?.useNix ?? plan.useNix ?? false },
     configs,
+    ...(plan.nibble === undefined ? {} : { nibble: nibbleSchema.parse(plan.nibble) }),
   };
 }
 
@@ -240,6 +243,24 @@ export class Validation {
 
       this.plan = plan;
       if (invalidateDetections) { this.detections = {}; }
+    } finally { this.busy = false; }
+  }
+
+  async nibble() {
+    if (this.busy) throw new Error('Validation is busy');
+    this.busy = true;
+    try {
+      const errors = await nibbleErrors(this.cwd, this.plan);
+      if (errors.length) {
+        const plan = structuredClone(this.plan);
+        plan.nibble!.budget = Math.max(0, plan.nibble!.budget! - errors.length);
+        if (this.configFile) {
+          await Bun.write(this.configFile + '.tmp', JSON.stringify(plan, null, 2) + '\n');
+          await rename(this.configFile + '.tmp', this.configFile);
+        }
+        this.plan = plan;
+      }
+      return errors;
     } finally { this.busy = false; }
   }
 

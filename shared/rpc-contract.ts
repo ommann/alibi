@@ -1,10 +1,12 @@
 import { eventIterator, oc } from '@orpc/contract';
 import { z } from 'zod';
+import { nibbleSchema } from './nibble';
 import type { Snapshot } from './contracts';
 
 const policy = z.enum(['agent', 'user', 'off']);
 const record = z.record(z.string(), z.unknown());
 const plan = z.object({
+  nibble: nibbleSchema.optional(),
   groups: z.array(z.array(z.string())),
   policies: z.record(z.string(), policy),
   removed: z.array(z.string()).optional(),
