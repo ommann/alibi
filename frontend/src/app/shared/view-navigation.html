@@ -1,7 +1,8 @@
 <span class="project" [title]="validation.cwd() || ''">{{ validation.cwd() || 'Alibi' }}</span>
 @if (validation.error(); as error) { <span class="connection-error" role="alert">{{ error }}</span> }
 <nav aria-label="Views">
-  <a class="button" [routerLink]="validation.cwd()" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Validation</a>
-  <a class="button" [routerLink]="validation.cwd() + '/eslint'" routerLinkActive="active" ariaCurrentWhenActive="page">ESLint</a>
-  <a class="button" [routerLink]="validation.cwd() + '/presentation'" routerLinkActive="active" ariaCurrentWhenActive="page">Presentation</a>
+  <a class="button" [routerLink]="validation.cwd()" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'exact' }" ariaCurrentWhenActive="page">Validation</a>
+  <a class="button" [routerLink]="validation.cwd()" fragment="eslint" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'exact' }" ariaCurrentWhenActive="page">ESLint</a>
+  <a class="button" [routerLink]="validation.cwd()" fragment="nibble" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'exact' }" ariaCurrentWhenActive="page">Nibble</a>
+  <a class="button" [routerLink]="validation.cwd()" fragment="presentation" routerLinkActive="active" [routerLinkActiveOptions]="{ paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'exact' }" ariaCurrentWhenActive="page">Presentation</a>
 </nav>

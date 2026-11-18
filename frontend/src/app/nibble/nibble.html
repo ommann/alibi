@@ -1,0 +1,9 @@
+<main>
+  <app-view-navigation />
+  <h2>Nibble budget</h2>
+  <div class="toolbar">
+    <input type="number" min="0" step="1" aria-label="Nibble budget" placeholder="Count…" [value]="budget()" (input)="setBudget($event)">
+    <label><app-checkbox [(checked)]="dirtyFilesFirst" /> Dirty files first</label>
+    <label><app-checkbox [(checked)]="wholeFilesFirst" /> Whole files first</label>
+  </div>
+</main>

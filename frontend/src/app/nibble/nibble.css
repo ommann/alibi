@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-inline);
+  margin-block-end: var(--space-block);
+}
+
+input[type="number"] {
+  width: 26ch;
+  max-width: 100%;
+}
+
+h2 {
+  font: inherit;
+  font-weight: bold;
+  color: var(--text-emphasis);
+  margin: 0 0 var(--space-block);
+}
