@@ -61,7 +61,7 @@ input[type="number"] {
   display: flex;
   align-items: baseline;
   gap: var(--space-inline);
-  padding: var(--space-control) var(--space-inline);
+  padding-inline: var(--space-inline);
   background: var(--control-active-background);
 }
 
