@@ -1,17 +1,21 @@
 <main>
   <app-view-navigation />
-  <h2>Nibble budget</h2>
+  @if (validation.actionError(); as error) { <p class="error" role="alert">{{ error }}</p> }
   <div class="toolbar">
-    <input type="number" min="0" step="1" aria-label="Nibble budget" placeholder="Count…" [value]="budget()" [disabled]="validation.editingDisabled()" (change)="setBudget($event)">
+    <button type="button" [disabled]="validation.editingDisabled() || !selectedRules().length" (click)="validation.runNibble()">Run</button>
+    <button type="button" [disabled]="!validation.state()?.running || validation.stopPending() || validation.state()?.stopping" (click)="validation.stop()">{{ validation.state()?.stopping || validation.stopPending() ? 'Stopping…' : 'Stop' }}</button>
+  </div>
+  <div class="toolbar">
+    <input type="number" min="0" step="1" aria-label="Count" placeholder="Count" [value]="budget()" [disabled]="validation.editingDisabled()" (change)="setBudget($event)">
+    <input type="number" min="0" step="1" aria-label="Reserve" placeholder="Reserve" [value]="reserve()" [disabled]="validation.editingDisabled()" (change)="setBudget($event, 'reserve')">
     <label><app-checkbox [checked]="dirtyFilesFirst()" (checkedChange)="save({ dirtyFilesFirst: $event })" [disabled]="validation.editingDisabled()" /> Dirty files only</label>
     <label><app-checkbox [checked]="wholeFilesFirst()" (checkedChange)="save({ wholeFilesFirst: $event })" [disabled]="validation.editingDisabled()" /> Whole files first</label>
     <label><app-checkbox [checked]="randomSelection()" (checkedChange)="save({ randomSelection: $event })" [disabled]="validation.editingDisabled()" /> Random error order</label>
   </div>
 
-  @if (validation.actionError(); as error) { <p class="error" role="alert">{{ error }}</p> }
   <h2>ESLint rules</h2>
   <div class="toolbar">
-    <input type="search" aria-label="Filter rules" placeholder="Filter rules…" [value]="search()" (input)="setSearch($event)">
+    <input type="search" aria-label="Filter rules" placeholder="Filter rules" [value]="search()" (input)="setSearch($event)">
   </div>
   @if (validation.catalogError(); as error) {
     <p class="error" role="alert">{{ error }} <button type="button" (click)="validation.loadESLintRules()">Retry</button></p>

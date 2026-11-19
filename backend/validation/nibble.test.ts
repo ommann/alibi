@@ -16,7 +16,7 @@ test('nibble ignores validation policies, follows rule priority, and consumes it
       eslint: { visible: { rules: { 'no-debugger': 'error' } }, hidden: { rules: { 'no-console': 'error' } } },
       groups: [['eslint:visible'], ['eslint:hidden']],
       policies: { 'eslint:visible': 'agent', 'eslint:hidden': 'user' },
-      nibble: { ...defaultNibble, dirtyFilesFirst: false, budget: 1, rules: ['no-console', 'no-debugger'] },
+      nibble: { ...defaultNibble, dirtyFilesFirst: false, budget: 1, reserve: 1, rules: ['no-console', 'no-debugger'] },
     });
     const errors = await runner.nibble();
     expect(errors.map(error => error.rule)).toEqual(['no-console']);
@@ -28,7 +28,8 @@ test('nibble ignores validation policies, follows rule priority, and consumes it
     const check = Bun.spawn(['bash', '-c', errors[0]!.checkCommand!], { cwd, stdout: 'ignore', stderr: 'ignore' });
     expect(await check.exited).toBe(1);
     expect(await Bun.file(join(cwd, 'sample.js')).text()).toBe(original);
-    expect(runner.plan.nibble!.budget).toBe(0);
+    expect(runner.plan.nibble!.reserve).toBe(0);
+    expect(runner.plan.nibble!.budget).toBe(1);
     expect((await Bun.file(join(cwd, '.alibi.json')).json()).nibble.budget).toBeUndefined();
     expect(await runner.nibble()).toEqual([]);
     expect(runner.snapshot().nibbleCounts).toEqual({ 'no-console': 1, 'no-debugger': 2 });
@@ -37,14 +38,14 @@ test('nibble ignores validation policies, follows rule priority, and consumes it
     await runner.configure({
       ...runner.plan,
       eslint: { ...runner.plan.eslint, visible: { rules: { 'no-debugger': 'error', 'no-console': 'error' } } },
-      nibble: { ...runner.plan.nibble!, budget: 1, rules: ['no-debugger'] },
+      nibble: { ...runner.plan.nibble!, budget: 1, reserve: 1, rules: ['no-debugger'] },
     });
     expect(await runner.nibble()).toHaveLength(2);
     await Bun.write(join(cwd, 'sample.js'), 'debugger;;\nconsole.log(1);\n');
     await runner.configure({
       ...runner.plan,
       eslint: { ...runner.plan.eslint, visible: { rules: { 'no-extra-semi': 'error', 'no-debugger': 'error', 'no-console': 'error' } } },
-      nibble: { ...runner.plan.nibble!, budget: 1, rules: ['no-extra-semi'] },
+      nibble: { ...runner.plan.nibble!, budget: 1, reserve: 1, rules: ['no-extra-semi'] },
     });
     const findings = await runner.nibble();
     expect(findings).toHaveLength(1);
@@ -57,7 +58,8 @@ test('nibble ignores validation policies, follows rule priority, and consumes it
     expect(await Bun.file(join(cwd, 'sample.js')).text()).not.toContain(';;');
     const verify = Bun.spawn(['bash', '-c', findings[0]!.checkCommand!], { cwd, stdout: 'ignore', stderr: 'ignore' });
     expect(await verify.exited).toBe(0);
-    expect(runner.plan.nibble!.budget).toBe(0);
+    expect(runner.plan.nibble!.reserve).toBe(0);
+    expect(runner.plan.nibble!.budget).toBe(1);
     expect((await Bun.file(join(cwd, '.alibi.json')).json()).nibble.budget).toBeUndefined();
     runner.busy = true;
     await expect(runner.nibble()).rejects.toThrow('busy');
@@ -74,19 +76,34 @@ test('nibble reports TypeScript errors', async () => {
     await runner.configure({
       ...runner.plan,
       eslint: { default: { rules: { curly: 'error' } } },
-      nibble: { ...defaultNibble, dirtyFilesFirst: false, budget: 1, rules: ['curly'] },
+      nibble: { ...defaultNibble, dirtyFilesFirst: false, budget: 1, reserve: 1, rules: ['curly'] },
     });
     const findings = await runner.nibble();
     expect(findings).toHaveLength(1);
     expect(findings[0]!.rule).toBe('curly');
     expect(findings[0]!.file).toBe('sample.ts');
     expect(runner.snapshot().nibbleCounts?.curly).toBe(1);
+    expect(runner.plan.nibble!.reserve).toBe(0);
+    expect(runner.plan.nibble!.budget).toBe(1);
+    await runner.refreshNibbleCounts();
+    expect(runner.snapshot().nibbleCounts?.curly).toBe(1);
+    expect(runner.plan.nibble!.reserve).toBe(0);
+    expect(runner.plan.nibble!.budget).toBe(1);
+    expect(runner.busy).toBe(false);
+    expect(runner.snapshot().running).toBe(false);
+    const refresh = runner.refreshNibbleCounts();
+    expect(runner.snapshot().running).toBe(true);
+    await runner.stop();
+    await refresh;
+    expect(runner.busy).toBe(false);
+    expect(runner.snapshot().running).toBe(false);
+    expect(runner.snapshot().nibbleCounts?.curly).toBe(1);
     await Bun.write(join(cwd, 'sample.ts'), 'const value: number = 1;\nif (value) { console.log(value); }\n');
     await runner.runForAgent();
     while (runner.busy) await Bun.sleep(1);
     expect(runner.snapshot().nibbleCounts?.curly).toBe(0);
     await Bun.write(join(cwd, 'sample.ts'), 'if (true) console.log(1);\n');
-    await runner.configure({ ...runner.plan, nibble: { ...runner.plan.nibble!, budget: 1 } });
+    await runner.configure({ ...runner.plan, nibble: { ...runner.plan.nibble!, budget: 1, reserve: 1 } });
     await runner.nibble();
     expect(runner.snapshot().nibbleCounts?.curly).toBe(1);
   } finally {
@@ -99,14 +116,14 @@ test('nibble settings persist, reload, and reject invalid budgets and duplicate 
   const steps = [{ name: 'example', detect: () => true, run: async () => 0 }];
   try {
     const runner = await Validation.create(cwd, { steps });
-    const nibble = { ...defaultNibble, budget: 12, rules: ['eqeqeq', 'no-debugger'], randomSelection: true };
+    const nibble = { ...defaultNibble, budget: 12, reserve: 100, rules: ['eqeqeq', 'no-debugger'], randomSelection: true };
     await runner.configure({ ...runner.plan, nibble });
-    const { budget: _, ...saved } = nibble;
+    const { budget: _, reserve: __, ...saved } = nibble;
     expect((await Bun.file(join(cwd, '.alibi.json')).json()).nibble).toEqual(saved);
     await runner.refreshConfig();
     expect(runner.plan.nibble).toEqual(nibble);
     const reloaded = await Validation.create(cwd, { steps });
-    expect(reloaded.plan.nibble).toEqual({ ...nibble, budget: null });
+    expect(reloaded.plan.nibble).toEqual({ ...nibble, budget: null, reserve: null });
     for (const budget of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
       await expect(runner.configure({ ...runner.plan, nibble: { ...nibble, budget } })).rejects.toThrow();
     }

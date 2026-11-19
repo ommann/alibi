@@ -53,7 +53,7 @@ test('nibble formats diagnostics as one ESLint-style text block', async () => {
     await runner.configure({
       ...runner.plan,
       eslint: { default: { rules: { 'no-debugger': 'error' } } },
-      nibble: { budget: 2, rules: ['no-debugger'], dirtyFilesFirst: false, wholeFilesFirst: true, randomSelection: false },
+      nibble: { budget: 2, reserve: 100, rules: ['no-debugger'], dirtyFilesFirst: false, wholeFilesFirst: true, randomSelection: false },
     });
     await server.connect(serverTransport);
     await client.connect(clientTransport);

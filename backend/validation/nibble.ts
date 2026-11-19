@@ -1,13 +1,15 @@
 import { join, relative } from 'node:path';
-import type { Plan } from '../../shared/contracts';
+import { isESLintFileConfig, type Plan } from '../../shared/contracts';
+import { assignedRules } from '../../shared/eslint-plan';
 import { scopedEngine } from './nibble-fix';
 import { sourceFiles } from './source-files';
 
 export type NibbleError = { file: string; line: number; column: number; rule: string; message: string; fixable: boolean; group: string; checkCommand?: string; fixCommand?: string };
 
-export async function nibbleErrors(cwd: string, plan: Plan, onCounts?: (counts: Record<string, number>) => void): Promise<NibbleError[]> {
+export async function nibbleErrors(cwd: string, plan: Plan, onCounts?: (counts: Record<string, number>) => void, options: { countsOnly?: boolean; signal?: AbortSignal } = {}): Promise<NibbleError[]> {
   const settings = plan.nibble;
-  if (!settings?.budget || !settings.rules.length) return [];
+  if (!settings || !settings.rules.length || (!options.countsOnly && (!settings.budget || !settings.reserve))) return [];
+  options.signal?.throwIfAborted();
   const dirty = new Set<string>();
   if (settings.dirtyFilesFirst) {
     const process = Bun.spawn(['git', 'ls-files', '-z', '--modified', '--others', '--exclude-standard'], { cwd, stdout: 'pipe', stderr: 'ignore' });
@@ -18,8 +20,10 @@ export async function nibbleErrors(cwd: string, plan: Plan, onCounts?: (counts: 
   const errors: NibbleError[] = [];
   const seen = new Set<string>();
   for (const [group, instanceConfig] of Object.entries(plan.eslint ?? {})) {
+    if (!isESLintFileConfig(instanceConfig) && !assignedRules(instanceConfig).some(rule => settings.rules.includes(rule))) continue;
 
     for await (const file of sourceFiles(cwd)) {
+      options.signal?.throwIfAborted();
       if (settings.dirtyFilesFirst && !dirty.has(file)) continue;
       const path = join(cwd, file);
       const eslint = await scopedEngine(cwd, instanceConfig, path, settings.rules);
@@ -38,11 +42,13 @@ export async function nibbleErrors(cwd: string, plan: Plan, onCounts?: (counts: 
   }
   const counts = Object.fromEntries(settings.rules.map(rule => [rule, 0]));
   for (const error of errors) counts[error.rule] = (counts[error.rule] ?? 0) + 1;
+  options.signal?.throwIfAborted();
   onCounts?.(counts);
+  if (options.countsOnly) return [];
   errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column);
   const selected: NibbleError[] = [];
   let lockedFile: string | undefined;
-  while (errors.length && selected.length < settings.budget) {
+  while (errors.length && selected.length < Math.min(settings.budget!, settings.reserve!)) {
     let candidates = errors.filter(error => !lockedFile || error.file === lockedFile);
     if (!candidates.length) { lockedFile = undefined; candidates = errors; }
     const rule = settings.rules.find(rule => candidates.some(error => error.rule === rule));

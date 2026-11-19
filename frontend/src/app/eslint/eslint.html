@@ -3,8 +3,8 @@
   <h2>ESLint rules</h2>
 
   <div class="toolbar">
-    <input type="search" aria-label="Filter groups" placeholder="Filter groups…" [value]="nameSearch()" (input)="nameSearch.set(value($event))">
-    <input type="search" aria-label="Filter rules" placeholder="Filter rules…" [value]="search()" (input)="search.set(value($event))">
+    <input type="search" aria-label="Filter groups" placeholder="Filter groups" [value]="nameSearch()" (input)="nameSearch.set(value($event))">
+    <input type="search" aria-label="Filter rules" placeholder="Filter rules" [value]="search()" (input)="search.set(value($event))">
     <label><app-checkbox [(checked)]="hideDeprecated" /> Hide deprecated unassigned rules</label>
     @if (!addingGroup() && !addingSettings()) {
       <div class="toolbar-actions">

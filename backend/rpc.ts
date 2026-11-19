@@ -22,6 +22,12 @@ export const router = implementation.router({
     return { id: run.id };
   }),
 
+  nibbleCounts: implementation.nibbleCounts.handler(async ({ input }) => {
+    const runner = await project(input.cwd);
+    await runner.refreshNibbleCounts();
+    return runner.snapshot();
+  }),
+
   stop: implementation.stop.handler(async ({ input }) => {
     const runner = await project(input.cwd);
     await runner.stop();

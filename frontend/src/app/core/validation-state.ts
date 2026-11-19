@@ -59,6 +59,14 @@ export class ValidationState {
     });
   }
 
+  async runNibble(): Promise<void> {
+    if (this.editingDisabled()) return;
+    await this.action(async cwd => {
+      const state = await this.rpc.nibbleCounts({ cwd });
+      if (this.cwd() === cwd) this.snapshot.set(state);
+    });
+  }
+
   async run(): Promise<void> {
     if (this.editingDisabled()) return;
     await this.action(cwd => this.rpc.run({ cwd }));

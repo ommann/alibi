@@ -201,7 +201,10 @@ export class Validation {
     let plan = checkPlan({ groups: [], policies: {} }, steps);
     if (configFile && await Bun.file(configFile).exists()) {
       const saved = await Bun.file(configFile).json();
-      if (saved.nibble) delete saved.nibble.budget;
+      if (saved.nibble) {
+        delete saved.nibble.budget;
+        delete saved.nibble.reserve;
+      }
       plan = checkPlan(saved, steps);
     }
 
@@ -221,7 +224,10 @@ export class Validation {
     this.busy = true;
     try {
       const saved = await Bun.file(this.configFile).json();
-      if (saved.nibble) saved.nibble.budget = this.plan.nibble?.budget ?? null;
+      if (saved.nibble) {
+        saved.nibble.budget = this.plan.nibble?.budget ?? null;
+        saved.nibble.reserve = this.plan.nibble?.reserve ?? null;
+      }
       const plan = checkPlan(saved, this.definitions);
       this.plan = plan;
       this.detections = {};
@@ -243,7 +249,10 @@ export class Validation {
     try {
       if (this.configFile) {
         const saved = structuredClone(plan);
-        if (saved.nibble) Reflect.deleteProperty(saved.nibble, 'budget');
+        if (saved.nibble) {
+          Reflect.deleteProperty(saved.nibble, 'budget');
+          Reflect.deleteProperty(saved.nibble, 'reserve');
+        }
         await Bun.write(this.configFile + ".tmp", JSON.stringify(saved, null, 2) + "\n");
         await rename(this.configFile + ".tmp", this.configFile);
       }
@@ -260,11 +269,32 @@ export class Validation {
       const errors = await nibbleErrors(this.cwd, this.plan, counts => { this.nibbleCounts = { ...this.nibbleCounts, ...counts }; });
       if (errors.length) {
         const plan = structuredClone(this.plan);
-        plan.nibble!.budget = Math.max(0, plan.nibble!.budget! - errors.length);
+        plan.nibble!.reserve = Math.max(0, plan.nibble!.reserve! - errors.length);
         this.plan = plan;
       }
       return errors;
     } finally { this.busy = false; }
+  }
+
+  async refreshNibbleCounts() {
+    if (this.busy) throw new Error('Validation is busy');
+    this.busy = true;
+    const controller = new AbortController();
+    const done = Promise.withResolvers<void>();
+    this.controller = controller;
+    this.runDone = done.promise;
+    try {
+      await nibbleErrors(this.cwd, this.plan, counts => {
+        this.nibbleCounts = { ...this.nibbleCounts, ...counts };
+      }, { countsOnly: true, signal: controller.signal });
+    } catch (error) {
+      if (!controller.signal.aborted) throw error;
+    } finally {
+      this.controller = undefined;
+      this.runDone = undefined;
+      this.busy = false;
+      done.resolve();
+    }
   }
 
   private async context(): Promise<Context> {

@@ -73,14 +73,15 @@ export class Nibble {
   }
 
   readonly budget = computed(() => this.config().budget);
+  readonly reserve = computed(() => this.config().reserve);
   readonly dirtyFilesFirst = computed(() => this.config().dirtyFilesFirst);
   readonly wholeFilesFirst = computed(() => this.config().wholeFilesFirst);
   readonly randomSelection = computed(() => this.config().randomSelection);
 
-  setBudget(event: Event): void {
+  setBudget(event: Event, field: 'budget' | 'reserve' = 'budget'): void {
     const input = event.target as HTMLInputElement;
     if (input.value !== '' && (!input.validity.valid || !Number.isSafeInteger(input.valueAsNumber))) return;
     const value = input.value === '' ? null : input.valueAsNumber;
-    void this.save({ budget: value });
+    void this.save({ [field]: value });
   }
 }

@@ -37,6 +37,7 @@ export const validationContract = {
   }))),
   configure: oc.input(z.object({ cwd: z.string().trim().min(1), plan })).output(snapshot),
   run: oc.input(z.object({ cwd: z.string().trim().min(1) })).output(z.object({ id: z.string() })),
+  nibbleCounts: oc.input(z.object({ cwd: z.string().trim().min(1) })).output(snapshot),
   stop: oc.input(z.object({ cwd: z.string().trim().min(1) })).output(snapshot),
   watch: oc.input(z.object({ cwd: z.string().trim().min(1) })).output(eventIterator(snapshot)),
 };
