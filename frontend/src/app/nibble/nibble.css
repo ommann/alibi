@@ -46,11 +46,6 @@ input[type="number"] {
   font-weight: normal;
 }
 
-.available-list {
-  max-height: 20lh;
-  overflow: auto;
-}
-
 .rule-list {
   display: flex;
   flex-direction: column;
