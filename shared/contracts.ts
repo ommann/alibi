@@ -86,6 +86,7 @@ export type StepSummary = {
 };
 
 export type Snapshot = {
+  nibbleCounts?: Record<string, number>;
   cwd: string;
   busy: boolean;
   running?: boolean;

@@ -13,7 +13,6 @@ export const router = implementation.router({
   configure: implementation.configure.handler(async ({ input }) => {
     const runner = await project(input.cwd);
     await runner.configure(input.plan);
-    await runner.detect();
     return runner.snapshot();
   }),
 

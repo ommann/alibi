@@ -18,6 +18,7 @@ export class Nibble {
   readonly search = signal('');
   readonly config = computed(() => this.validation.state()?.plan.nibble ?? defaultNibble);
   readonly selectedRules = computed(() => this.config().rules);
+  readonly counts = computed(() => this.validation.state()?.nibbleCounts ?? {});
   readonly groupRules = computed(() => {
     const metadata = new Map(this.validation.eslintRules().map(rule => [rule.id, rule]));
     const ids = [...new Set(Object.values(this.validation.state()?.plan.eslint ?? {}).flatMap(assignedRules))];
@@ -49,12 +50,7 @@ export class Nibble {
     const metadata = new Map(this.validation.eslintRules().map(rule => [rule.id, rule]));
     return this.selectedRules().map(id => metadata.get(id) ?? { id, description: '' });
   });
-  readonly rules = computed(() => {
-    const query = this.search().trim().toLowerCase();
-    return this.orderedRules().filter(rule =>
-      `${rule.id} ${rule.description ?? ''}`.toLowerCase().includes(query),
-    );
-  });
+  readonly rules = this.orderedRules;
 
   constructor() {
     void this.validation.loadESLintRules();

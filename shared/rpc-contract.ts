@@ -15,6 +15,7 @@ const plan = z.object({
   eslint: z.record(z.string(), z.union([record, z.array(record)])).optional(),
 });
 const snapshot: z.ZodType<Snapshot> = z.object({
+  nibbleCounts: z.record(z.string(), z.number().int().nonnegative()).optional(),
   cwd: z.string(), busy: z.boolean(), running: z.boolean().optional(), stopping: z.boolean().optional(), plan,
   steps: z.array(z.object({
     name: z.string(),

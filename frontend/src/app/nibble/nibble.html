@@ -23,6 +23,9 @@
       <div class="rule-row" cdkDrag [cdkDragDisabled]="validation.editingDisabled()" [cdkDragData]="rule.id">
         <span cdkDragHandle class="handle" aria-label="Drag rule">⠿</span>
         <span class="rule-name" [title]="rule.description || ''">{{ rule.id }}</span>
+        @if (counts()[rule.id] !== undefined) {
+          <span class="muted" title="Errors in the latest ESLint check (Validate or Nibble)">{{ counts()[rule.id] }} {{ counts()[rule.id] === 1 ? 'error' : 'errors' }}</span>
+        }
         <button type="button" [disabled]="validation.editingDisabled()" (click)="removeRule(rule.id)">Remove</button>
       </div>
     }

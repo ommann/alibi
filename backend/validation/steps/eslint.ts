@@ -56,19 +56,30 @@ export default {
     let files = 0;
     let errors = 0;
     let warnings = 0;
+    const counts: Record<string, number> = {};
     for await (const file of sourceFiles(context.cwd)) {
       context.signal?.throwIfAborted();
       const path = join(context.cwd, file);
       if (await eslint.isPathIgnored(path)) { continue; }
+      const config = await eslint.calculateConfigForFile(path);
+      for (const [rule, setting] of Object.entries(config?.rules ?? {})) {
+        const severity = Array.isArray(setting) ? setting[0] : setting;
+        if (severity === 2 || severity === 'error') counts[rule] ??= 0;
+      }
       const results = await eslint.lintText(await Bun.file(path).text(), { filePath: path });
       context.signal?.throwIfAborted();
       for (const result of results) {
         files++;
         errors += result.errorCount;
+        for (const message of result.messages) {
+          if (message.severity === 2 && message.ruleId) counts[message.ruleId] = (counts[message.ruleId] ?? 0) + 1;
+        }
         warnings += result.warningCount;
         if (result.messages.length) { diagnostics.push(result); }
       }
     }
+    context.signal?.throwIfAborted();
+    context.eslintCounts?.(counts);
     if (diagnostics.length) { context.output?.('stdout', await formatter.format(diagnostics)); }
     const summary = files === 0 ? 'No matching files.'
       : `Checked ${files} ${files === 1 ? 'file' : 'files'}. ${errors || warnings

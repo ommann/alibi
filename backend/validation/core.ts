@@ -179,6 +179,7 @@ export class Validation {
   plan: Plan;
   detections: Record<string, Detection> = {};
   runs: Run[] = [];
+  nibbleCounts?: Record<string, number>;
   busy = false;
   private configFile?: string;
   private controller?: AbortController;
@@ -199,7 +200,9 @@ export class Validation {
     const configFile = options.persist === false ? undefined : join(cwd, ".alibi.json");
     let plan = checkPlan({ groups: [], policies: {} }, steps);
     if (configFile && await Bun.file(configFile).exists()) {
-      plan = checkPlan(await Bun.file(configFile).json(), steps);
+      const saved = await Bun.file(configFile).json();
+      if (saved.nibble) delete saved.nibble.budget;
+      plan = checkPlan(saved, steps);
     }
 
     const runner = new Validation(cwd, steps, plan, configFile);
@@ -208,7 +211,7 @@ export class Validation {
   }
 
   snapshot(): Snapshot {
-    return { cwd: this.cwd, busy: this.busy, running: !!this.controller, stopping: this.controller?.signal.aborted ?? false, plan: this.plan, steps: this.steps.map(step => ({ name: step.name, parameters: step.parameters ?? {}, detection: this.detections[step.name] ?? null })), runs: this.runs };
+    return { nibbleCounts: this.nibbleCounts, cwd: this.cwd, busy: this.busy, running: !!this.controller, stopping: this.controller?.signal.aborted ?? false, plan: this.plan, steps: this.steps.map(step => ({ name: step.name, parameters: step.parameters ?? {}, detection: this.detections[step.name] ?? null })), runs: this.runs };
   }
 
   async refreshConfig() {
@@ -217,7 +220,9 @@ export class Validation {
 
     this.busy = true;
     try {
-      const plan = checkPlan(await Bun.file(this.configFile).json(), this.definitions);
+      const saved = await Bun.file(this.configFile).json();
+      if (saved.nibble) saved.nibble.budget = this.plan.nibble?.budget ?? null;
+      const plan = checkPlan(saved, this.definitions);
       this.plan = plan;
       this.detections = {};
     } finally { this.busy = false; }
@@ -237,7 +242,9 @@ export class Validation {
     this.busy = true;
     try {
       if (this.configFile) {
-        await Bun.write(this.configFile + ".tmp", JSON.stringify(plan, null, 2) + "\n");
+        const saved = structuredClone(plan);
+        if (saved.nibble) Reflect.deleteProperty(saved.nibble, 'budget');
+        await Bun.write(this.configFile + ".tmp", JSON.stringify(saved, null, 2) + "\n");
         await rename(this.configFile + ".tmp", this.configFile);
       }
 
@@ -250,14 +257,10 @@ export class Validation {
     if (this.busy) throw new Error('Validation is busy');
     this.busy = true;
     try {
-      const errors = await nibbleErrors(this.cwd, this.plan);
+      const errors = await nibbleErrors(this.cwd, this.plan, counts => { this.nibbleCounts = { ...this.nibbleCounts, ...counts }; });
       if (errors.length) {
         const plan = structuredClone(this.plan);
         plan.nibble!.budget = Math.max(0, plan.nibble!.budget! - errors.length);
-        if (this.configFile) {
-          await Bun.write(this.configFile + '.tmp', JSON.stringify(plan, null, 2) + '\n');
-          await rename(this.configFile + '.tmp', this.configFile);
-        }
         this.plan = plan;
       }
       return errors;
@@ -375,6 +378,7 @@ export class Validation {
       for (const step of this.workspaceSteps) plan.policies[step.name] = plan.policies['npm:test']!;
       delete plan.policies['npm:test'];
     }
+    const eslintCounts: Record<string, Record<string, number>> = {};
     const run: Run = {
       id: crypto.randomUUID(), caller, startedAt: now(), plan,
       results: plan.groups.flat().map(name => ({ name, policy: plan.policies[name]!, status: "pending", output: "" })),
@@ -432,7 +436,14 @@ export class Validation {
             if (detection.error) { throw new Error(detection.error); }
             const step = steps.find(step => step.name === name)!;
             onStep?.(name);
-            result.exitCode = await step.run({ ...context, useNix: plan.options?.useNix, config: plan.configs?.[name] ?? {}, output: (_stream, text) => { result.output += text; } });
+            result.exitCode = await step.run({ ...context, useNix: plan.options?.useNix, config: plan.configs?.[name] ?? {}, eslintCounts: counts => {
+              eslintCounts[name] = counts;
+              const totals: Record<string, number> = {};
+              for (const group of Object.values(eslintCounts)) {
+                for (const [rule, count] of Object.entries(group)) totals[rule] = (totals[rule] ?? 0) + count;
+              }
+              this.nibbleCounts = { ...this.nibbleCounts, ...totals };
+            }, output: (_stream, text) => { result.output += text; } });
             result.status = signal.aborted ? "cancelled" : result.exitCode === 0 ? "passed" : "failed";
             if (signal.aborted) { result.exitCode = undefined; }
           } catch (error) {

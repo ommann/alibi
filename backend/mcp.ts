@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { resolve } from 'node:path';
 import { project } from './validation-projects';
 import { ruleSettings, setESLintRule } from '../shared/eslint-plan';
 function assistantRunResult(run: import('../shared/contracts').Run) {
@@ -165,17 +166,37 @@ export function createMcpServer(management = false, cwd?: string) {
   }
 
   server.registerTool('nibble', {
-    description: 'Return ESLint errors selected by the user’s Nibble settings. Each returned error consumes one unit of the persistent budget. Unset or exhausted budgets return no output.',
+    description: 'Return a batch of ESLint errors with verification and automatic fix commands. No output means no work is available.',
     inputSchema: {},
   }, async () => {
     try {
-      const errors = await (await project(cwd!)).nibble();
-      const content = errors.map(error => ({ type: 'text' as const, text: `${error.file}:${error.line}:${error.column} ${error.rule}: ${error.message}` }));
+      const runner = await project(cwd!);
+      const errors = await runner.nibble();
+      if (!errors.length) return { content: [] };
+      const files = new Map<string, typeof errors>();
+      for (const error of errors) {
+        const findings = files.get(error.file) ?? [];
+        findings.push(error);
+        files.set(error.file, findings);
+      }
+      const sections = [...files].map(([file, findings]) => {
+        findings.sort((a, b) => a.line - b.line || a.column - b.column);
+        const lineWidth = Math.max(...findings.map(error => String(error.line).length));
+        const locationWidth = lineWidth + 1 + Math.max(...findings.map(error => String(error.column).length));
+        const messageWidth = Math.max(...findings.map(error => error.message.length));
+        const rows = findings.map(error => {
+          const location = `${String(error.line).padStart(lineWidth)}:${error.column}`;
+          return `  ${location.padEnd(locationWidth)}  error  ${error.message.padEnd(messageWidth)}  ${error.rule}`;
+        });
+        return `${resolve(cwd!, file)}\n${rows.join('\n')}`;
+      });
       const checks = [...new Set(errors.flatMap(error => error.checkCommand ? [error.checkCommand] : []))];
-      if (checks.length) content.push({ type: 'text', text: `Verification commands:\n${checks.join('\n')}` });
-      const commands = [...new Set(errors.flatMap(error => error.fixCommand ? [error.fixCommand] : []))];
-      if (commands.length) content.push({ type: 'text', text: `Automatic fixes:\n${commands.join('\n')}` });
-      return { content };
+      if (checks.length) {
+        const fixable = new Set(errors.filter(error => error.fixCommand).map(error => error.checkCommand));
+        const commands = checks.map(command => `${command}${fixable.has(command) ? ' # --fix' : ''}`);
+        sections.push(`Check commands:\n${commands.join('\n')}`);
+      }
+      return { content: [{ type: 'text' as const, text: sections.join('\n\n') }] };
     } catch (error) {
       return { content: [{ type: 'text' as const, text: String(error) }], isError: true };
     }

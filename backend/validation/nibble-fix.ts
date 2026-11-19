@@ -1,7 +1,7 @@
 import { ESLint, type Linter } from 'eslint';
 
 function reusableConfig(config: Linter.Config): Linter.Config {
-  return Object.fromEntries(Object.entries({ files: ['**/*'], plugins: config.plugins, languageOptions: config.languageOptions, linterOptions: config.linterOptions, processor: config.processor, settings: config.settings, rules: config.rules }).filter(([, value]) => value !== undefined));
+  return Object.fromEntries(Object.entries({ files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'], plugins: config.plugins, languageOptions: config.languageOptions, linterOptions: config.linterOptions, processor: config.processor, settings: config.settings, rules: config.rules }).filter(([, value]) => value !== undefined));
 }
 import { resolve } from 'node:path';
 import { engine } from './steps/eslint';

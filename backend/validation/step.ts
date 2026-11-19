@@ -8,6 +8,7 @@ export type Context = {
   signal?: AbortSignal;
   config?: Record<string, unknown>;
   instanceConfig?: unknown;
+  eslintCounts?: (counts: Record<string, number>) => void;
   output?: (stream: "stdout" | "stderr", text: string) => void;
 };
 

@@ -53,7 +53,10 @@ export class ValidationState {
 
   async configure(plan: Plan): Promise<void> {
     if (this.editingDisabled()) return;
-    await this.action(cwd => this.rpc.configure({ cwd, plan }));
+    await this.action(async cwd => {
+      const state = await this.rpc.configure({ cwd, plan });
+      if (this.cwd() === cwd) this.snapshot.set(state);
+    });
   }
 
   async run(): Promise<void> {

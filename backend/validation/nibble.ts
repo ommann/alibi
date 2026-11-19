@@ -5,7 +5,7 @@ import { sourceFiles } from './source-files';
 
 export type NibbleError = { file: string; line: number; column: number; rule: string; message: string; fixable: boolean; group: string; checkCommand?: string; fixCommand?: string };
 
-export async function nibbleErrors(cwd: string, plan: Plan): Promise<NibbleError[]> {
+export async function nibbleErrors(cwd: string, plan: Plan, onCounts?: (counts: Record<string, number>) => void): Promise<NibbleError[]> {
   const settings = plan.nibble;
   if (!settings?.budget || !settings.rules.length) return [];
   const dirty = new Set<string>();
@@ -36,6 +36,9 @@ export async function nibbleErrors(cwd: string, plan: Plan): Promise<NibbleError
       }
     }
   }
+  const counts = Object.fromEntries(settings.rules.map(rule => [rule, 0]));
+  for (const error of errors) counts[error.rule] = (counts[error.rule] ?? 0) + 1;
+  onCounts?.(counts);
   errors.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.column - b.column);
   const selected: NibbleError[] = [];
   let lockedFile: string | undefined;
@@ -52,9 +55,11 @@ export async function nibbleErrors(cwd: string, plan: Plan): Promise<NibbleError
     }
     if (settings.wholeFilesFirst) lockedFile = error.file;
   }
-  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  const quote = (value: string) => /^[a-zA-Z0-9_./:@%+=,-]+$/.test(value)
+    ? value
+    : `'${value.replaceAll("'", "'\\''")}'`;
   for (const error of selected) {
-    const args = [process.execPath, join(import.meta.dir, 'nibble-fix.ts'), cwd, error.group, error.file, error.rule];
+    const args = ['bun', join(import.meta.dir, 'nibble-fix.ts'), cwd, error.group, error.file, error.rule];
     error.checkCommand = args.map(quote).join(' ');
     if (error.fixable) error.fixCommand = [...args, '--fix'].map(quote).join(' ');
   }

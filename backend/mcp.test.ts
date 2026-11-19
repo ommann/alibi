@@ -27,11 +27,41 @@ test('developer MCP exposes nibble and validation and returns only errors', asyn
     expect(success.isError).not.toBe(true);
 
     while ((await project(cwd)).busy) await Bun.sleep(10);
+    const emptyNibble = await client.callTool({ name: 'nibble', arguments: {} });
+    expect(emptyNibble.content).toEqual([]);
+    expect(tools[0]!.description).not.toMatch(/budget|settings|view/i);
     await Bun.write(join(cwd, 'package.json'), JSON.stringify({ scripts: { build: 'echo FAILURE_OUTPUT >&2; exit 1' } }));
     const failure = await client.callTool({ name: 'validate', arguments: {} });
     expect(failure.isError).toBe(true);
     expect(JSON.stringify(failure.content)).toContain('FAILURE_OUTPUT');
     expect(JSON.stringify(failure)).not.toContain('HAPPY_OUTPUT');
+  } finally {
+    await client.close();
+    await server.close();
+    await rm(cwd, { recursive: true, force: true });
+  }
+});
+
+test('nibble formats diagnostics as one ESLint-style text block', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'alibi-nibble-format-'));
+  const server = createMcpServer(false, cwd);
+  const client = new Client({ name: 'test', version: '1.0.0' });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  try {
+    await Bun.write(join(cwd, 'sample.ts'), 'debugger;\ndebugger;\n');
+    const runner = await project(cwd);
+    await runner.configure({
+      ...runner.plan,
+      eslint: { default: { rules: { 'no-debugger': 'error' } } },
+      nibble: { budget: 2, rules: ['no-debugger'], dirtyFilesFirst: false, wholeFilesFirst: true, randomSelection: false },
+    });
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    const response = await client.callTool({ name: 'nibble', arguments: {} });
+    expect(response.content).toHaveLength(1);
+    expect(JSON.stringify(response.content)).not.toContain('Automatic fixes:');
+    const text = (response.content as { type: string; text: string }[])[0]!.text;
+    expect(text).toContain(`${cwd}/sample.ts\n  1:1  error  Unexpected 'debugger' statement.  no-debugger\n  2:1  error  Unexpected 'debugger' statement.  no-debugger`);
   } finally {
     await client.close();
     await server.close();
